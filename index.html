@@ -8,47 +8,95 @@
     <meta name="color-scheme" content="light">
 </head>
 <body>
+    <div id="side-menu" class="side-menu">
+        <div class="menu-header">
+            <h3>Menu</h3>
+            <button onclick="toggleMenu()" class="close-menu">✕</button>
+        </div>
+        <a href="#" onclick="showScreen('pipeline-screen')">Pipeline</a>
+        <a href="#" onclick="showScreen('roi-screen')">ROI Dashboard</a>
+        <a href="#" onclick="showScreen('settings-screen')">Settings</a>
+    </div>
 
     <section id="pipeline-screen" class="screen">
         <header class="teal-header">
-            <h1>Pipeline</h1>
-            <div class="revenue-bar">
-                <div class="progress" style="width: 65%"></div>
+            <div class="header-top">
+                <button class="menu-btn" onclick="toggleMenu()">☰</button>
+                <h1>Pipeline</h1>
+                <div style="width: 40px;"></div> </div>
+            
+            <div class="stage-tabs">
+                <button class="tab active" onclick="filterLeads('New')">New</button>
+                <button class="tab" onclick="filterLeads('In-Progress')">Progress</button>
+                <button class="tab" onclick="filterLeads('Won')">Won</button>
             </div>
         </header>
 
-        <main class="content">
-            <div class="lead-card" onclick="showScreen('detail-scree')">
-                <div class="card-info">
-                    <h3>John Smith</h3>
-                    <p>Instagram • £1,200 </p>
-                </div>
-                <span class="status-dot"></span>
-            </div>
-        </main>
+        <main class="content" id="leads-container"></main>
     </section>
 
     <nav class="bottom-nav">
-        <div class="nav-icon active">🏠</div>
+        <div class="nav-icon active" onclick="showScreen('pipeline-screen')">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+        </div>
         <div class="fab" onclick="openModal()">+</div>
-        <div class="nav-icon">⚙️</div>
+        <div class="nav-icon" onclick="showScreen('settings-screen')">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        </div>
     </nav>
-
-    <script src="script.js"></script>
 
     <div id="add-lead-modal" class="modal-overlay" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
                 <h2>Add New Lead</h2>
-                <button onclick="closeModal()" class="close-btn">x</button>
+                <button onclick="closeModal()" class="close-btn">✕</button>
             </div>
             <form id="lead-form">
                 <input type="text" id="lead-name" placeholder="Lead Name" required>
-                <input type="text" id="lead-source" placeholder="Source" required>
-                <input type="number" id="lead-value" placeholder="Estimated Value (£)" required>
+                <input type="text" id="lead-source" placeholder="Source (e.g. Instagram)" required>
+                <input type="number" id="lead-value" placeholder="Value (£)" required>
                 <button type="submit" class="save-btn">Save Lead</button>
             </form>
         </div>
     </div>
+
+    <div id="lead-detail-screen" class="modal-overlay" style="display: none;">
+    <div class="modal-content detail-modal">
+        <div class="modal-header">
+            <h2 id="detail-name">Lead Name</h2>
+            <button onclick="closeDetail()" class="close-btn">✕</button>
+        </div>
+        
+        <div class="detail-body">
+            <div class="info-group">
+                <label>Pipeline Stage</label>
+                <select id="detail-status-select" onchange="updateLeadStatus()">
+                    <option value="New">New</option>
+                    <option value="In-Progress">In-Progress</option>
+                    <option value="Won">Won</option>
+                </select>
+            </div>
+
+            <div class="info-group">
+                <label>Contact Info</label>
+                <div class="action-buttons">
+                    <button class="action-btn">WhatsApp</button>
+                    <button class="action-btn">Call</button>
+                    <button class="action-btn">Email</button>
+                </div>
+            </div>
+
+            <div class="info-group">
+                <label>AI Quick Reply</label>
+                <div class="ai-box">
+                    <p id="ai-reply-text">Tap a button to generate a professional follow-up...</p>
+                    <button class="save-btn" style="background: var(--teal-dark); font-size: 12px; padding: 8px;">Generate AI Reply</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <script src="script.js"></script>
 </body>
 </html>
