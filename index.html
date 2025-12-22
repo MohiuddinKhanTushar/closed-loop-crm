@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teal CRM</title>
+    <link rel="stylesheet" href="style.css">
+    <meta name="color-scheme" content="light">
+</head>
+<body>
+
+    <section id="pipeline-screen" class="screen">
+        <header class="teal-header">
+            <h1>Pipeline</h1>
+            <div class="revenue-bar">
+                <div class="progress" style="width: 65%"></div>
+            </div>
+        </header>
+
+        <main class="content">
+            <div class="lead-card" onclick="showScreen('detail-scree')">
+                <div class="card-info">
+                    <h3>John Smith</h3>
+                    <p>Instagram • £1,200 </p>
+                </div>
+                <span class="status-dot"></span>
+            </div>
+        </main>
+    </section>
+
+    <nav class="bottom-nav">
+        <div class="nav-icon active">🏠</div>
+        <div class="fab" onclick="openModal()">+</div>
+        <div class="nav-icon">⚙️</div>
+    </nav>
+
+    <script src="script.js"></script>
+
+    <div id="add-lead-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add New Lead</h2>
+                <button onclick="closeModal()" class="close-btn">x</button>
+            </div>
+            <form id="lead-form">
+                <input type="text" id="lead-name" placeholder="Lead Name" required>
+                <input type="text" id="lead-source" placeholder="Source" required>
+                <input type="number" id="lead-value" placeholder="Estimated Value (£)" required>
+                <button type="submit" class="save-btn">Save Lead</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
