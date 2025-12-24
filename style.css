@@ -5,6 +5,7 @@
     --white: #ffffff;
     --text-dark: #1a1a1a;
     --gray-light: #eee;
+    --red-delete: #ff3b30;
 }
 
 body {
@@ -16,29 +17,80 @@ body {
     overflow-x: hidden;
 }
 
-/* Header & Navigation Tabs */
+/* --- HEADER & BRANDING --- */
 .teal-header {
     background: var(--teal-primary);
     color: var(--white);
-    padding: 40px 20px 20px;
-    text-align: center;
+    padding: 10px 20px;
+    min-height: 160px;
 }
 
 .header-top {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    position: relative;
+    height: 100px;
+    margin-bottom: 5px;
+}
+
+.logo-centered {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%) scale(1.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 250px;
+}
+
+.main-logo {
+    height: 80px !important;
+    width: auto;
+    object-fit: contain;
+    /* Removed filter to keep original colors */
 }
 
 .menu-btn {
     background: none;
     border: none;
     color: white;
-    font-size: 28px;
+    font-size: 32px;
     cursor: pointer;
+    padding: 0;
+    z-index: 10;
 }
 
+.user-profile-mini {
+    width: 36px;
+    height: 36px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: bold;
+    color: white;
+    z-index: 10;
+}
+
+.page-identity {
+    text-align: left;
+    padding: 15px 0 10px 0;
+}
+
+#current-screen-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.85);
+    margin: 0;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+/* --- TABS --- */
 .stage-tabs {
     display: flex;
     justify-content: space-around;
@@ -65,27 +117,67 @@ body {
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
-/* Content Area */
+/* --- LEAD CARDS & SWIPE LOGIC --- */
 .content {
     padding-bottom: 100px;
     min-height: calc(100vh - 180px);
 }
 
-/* Lead Cards */
-.lead-card {
-    background: var(--white);
+.lead-card-container {
+    position: relative;
     margin: 12px 16px;
-    padding: 18px;
     border-radius: 16px;
+    background-color: var(--white);
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+}
+
+.lead-card-container::before {
+    content: "Delete";
+    position: absolute;
+    right: 0px;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    background: linear-gradient(to left, var(--red-delete) 0%, var(--red-delete) 100px, var(--white) 100px);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 25px;
+    color: white;
+    font-weight: bold;
+    font-size: 14px;
+    border-radius: 16px;
+    z-index: 1;
+}
+
+.delete-background {
+    display: none;
+}
+
+.lead-card {
+    position: relative;
+    z-index: 2;
+    background: var(--white);
+    padding: 18px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+    cursor: pointer;
+    margin: 0; /* Important: removes red gap */
+    border-radius: 0;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+    transition: transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+    touch-action: pan-y;
+    -webkit-tap-highlight-color: transparent;
+    outline: 1px solid var(--white);
+    will-change: transform;
 }
 
 .card-info h3 {
     margin: 0 0 4px 0;
     font-size: 17px;
+    color: var(--text-dark);
 }
 
 .card-info p {
@@ -94,22 +186,11 @@ body {
     font-size: 14px;
 }
 
-.delete-btn {
-    background: none;
-    border: none;
-    padding: 12px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    pointer-events: auto;
+.swiped {
+    transform: translateX(-100px);
 }
 
-.delete-btn svg {
-    pointer-events: none;
-}
-
-/* Side Menu (Hamburger) */
+/* --- SIDE MENU --- */
 .side-menu {
     position: fixed;
     top: 0;
@@ -119,7 +200,6 @@ body {
     background: white;
     z-index: 2000;
     transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: none;
     padding: 25px;
     box-sizing: border-box;
 }
@@ -146,7 +226,7 @@ body {
     border-bottom: 1px solid var(--gray-light);
 }
 
-/* Bottom Navigation */
+/* --- BOTTOM NAV --- */
 .bottom-nav {
     position: fixed;
     bottom: 0;
@@ -182,13 +262,12 @@ body {
     margin-top: -40px;
     box-shadow: 0 6px 16px rgba(39, 104, 95, 0.35);
     cursor: pointer;
-    padding: 0;
     line-height: 1;
     padding-bottom: 6px;
     box-sizing: border-box;
 }
 
-/* Modal Styling */
+/* --- MODALS --- */
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -206,10 +285,9 @@ body {
     width: 100%;
     padding: 30px 25px 40px;
     border-radius: 30px 30px 0 0;
-    box-shadow: 0 -10px 25px rgba(0,0,0,0.1);
 }
 
-input {
+input, select {
     width: 100%;
     padding: 14px;
     margin: 8px 0 18px;
@@ -228,23 +306,13 @@ input {
     border-radius: 12px;
     font-weight: 700;
     font-size: 16px;
-    margin-top: 10px;
 }
 
-.close-btn, .close-menu {
+.close-btn {
     background: none;
     border: none;
     font-size: 24px;
     color: #888;
-    cursor: pointer;
-}
-
-.detail-modal {
-    height: 80vh; /* Make it taller than the "Add" modal */
-}
-
-.info-group {
-    margin-bottom: 25px;
 }
 
 .info-group label {
@@ -256,13 +324,11 @@ input {
     font-weight: bold;
 }
 
-select {
-    width: 100%;
-    padding: 12px;
-    border-radius: 10px;
-    border: 1px solid #ddd;
-    font-size: 16px;
-    background: white;
+.ai-box {
+    background: #f0f7f6;
+    padding: 15px;
+    border-radius: 12px;
+    border: 1px dashed var(--teal-primary);
 }
 
 .action-buttons {
@@ -280,9 +346,159 @@ select {
     font-weight: bold;
 }
 
-.ai-box {
+/* --- LEAD PROFILE SCREEN --- */
+.profile-card {
+    background: white;
+    margin: -30px 16px 16px;
+    padding: 24px;
+    border-radius: 20px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+    text-align: center;
+    position: relative;
+    z-index: 5;
+}
+
+.action-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.action-btn {
     background: #f0f7f6;
-    padding: 15px;
+    border: 1px solid #e0eeed;
     border-radius: 12px;
-    border: 1px dashed var(--teal-primary);
+    padding: 12px 5px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--teal-primary);
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.action-btn:active {
+    background: var(--teal-primary);
+    color: white;
+}
+
+.details-list {
+    background: white;
+    margin: 0 16px 16px;
+    padding: 10px 20px;
+    border-radius: 16px;
+}
+
+.detail-item {
+    padding: 12px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.detail-item:last-child { border: none; }
+
+.detail-item label {
+    font-size: 11px;
+    text-transform: uppercase;
+    color: #999;
+    font-weight: bold;
+}
+
+.detail-item p { margin: 4px 0 0; font-size: 15px; font-weight: 500; }
+
+.activity-section { padding: 0 16px; }
+
+.timeline {
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    margin-top: 10px;
+}
+
+.timeline-item {
+    position: relative;
+    padding-left: 25px;
+    padding-bottom: 20px;
+    border-left: 2px solid #f0f0f0;
+}
+
+.timeline-item:last-child { border: none; }
+
+.timeline-dot {
+    position: absolute;
+    left: -7px;
+    top: 5px;
+    width: 12px;
+    height: 12px;
+    background: var(--teal-primary);
+    border-radius: 50%;
+    border: 3px solid white;
+}
+
+.profile-edit-input {
+    width: 100%;
+    border: none;
+    padding: 5px 0;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text-dark);
+    background: transparent;
+    outline: none;
+    border-bottom: 1px solid transparent;
+    transition: border-bottom 0.3s;
+}
+
+.profile-edit-input:focus {
+    border-bottom: 1px solid var(--teal-primary);
+    background: #f9f9f9;
+}
+
+/* Validation Styles */
+.invalid-input {
+    border-color: #ff3b30 !important;
+    background-color: #fff9f9 !important;
+}
+
+.error-message {
+    color: #ff3b30;
+    font-size: 11px;
+    margin-top: -12px;
+    margin-bottom: 10px;
+    display: none; /* Hidden by default */
+}
+
+.timeline-item p { margin: 0; font-size: 14px; font-weight: 500; }
+.timeline-item span { font-size: 11px; color: #999; }
+
+.lead-detail-card::before {
+    content: "";
+    width: 40px;
+    height: 5px;
+    background: #e0e0e0;
+    border-radius: 10px;
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+/* Restores the Summary Box Look */
+.lead-detail-card {
+    background: white;
+    width: 100%;
+    padding: 30px 25px 40px;
+    border-radius: 30px 30px 0 0; /* Rounds the top corners */
+    position: relative; /* Needed for the grab handle */
+    box-shadow: 0 -5px 25px rgba(0,0,0,0.1);
+}
+
+/* Fixes the alignment for labels and inputs inside the summary */
+.detail-body {
+    text-align: left;
+    width: 100%;
+}
+
+.detail-header h2 {
+    margin-top: 10px;
+    margin-bottom: 20px;
+    text-align: left;
 }
