@@ -194,19 +194,40 @@ body {
 .side-menu {
     position: fixed;
     top: 0;
-    left: -310px;
-    width: 260px;
+    left: 0; /* Align to the left edge */
+    width: 280px;
     height: 100%;
     background: white;
-    z-index: 2000;
-    transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 2100;
+    /* Start the menu exactly one full width to the left */
+    transform: translateX(-100%); 
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     padding: 25px;
     box-sizing: border-box;
 }
 
 .side-menu.open {
-    left: 0;
+    transform: translateX(0);
     box-shadow: 5px 0 25px rgba(0,0,0,0.15);
+}
+
+/* --- THE OVERLAY (TAP TO CLOSE) --- */
+.menu-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 2000;
+    display: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.menu-overlay.active {
+    display: block;
+    opacity: 1;
 }
 
 .menu-header {

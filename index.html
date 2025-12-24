@@ -9,13 +9,14 @@
 <body>
 
     <div id="side-menu" class="side-menu">
-        <div class="menu-header">
-            <h3>Menu</h3>
-            <button onclick="toggleMenu()" class="close-menu">✕</button>
-        </div>
-        <a href="#" onclick="showScreen('pipeline-screen')">Pipeline</a>
-        <a href="#" onclick="showScreen('roi-screen')">ROI Dashboard</a>
+    <div class="menu-header">
+        <h3>Menu</h3>
     </div>
+    <a href="#" onclick="showScreen('pipeline-screen'); toggleMenu();">Pipeline</a>
+    <a href="#" onclick="showScreen('roi-screen'); toggleMenu();">ROI Dashboard</a>
+</div>
+
+<div id="menu-overlay" class="menu-overlay" onclick="toggleMenu()"></div>
 
     <section id="pipeline-screen" class="screen">
         <header class="teal-header">
@@ -31,7 +32,7 @@
             </div>
             <div class="stage-tabs">
                 <button class="tab active" onclick="filterLeads('New')">New</button>
-                <button class="tab" onclick="filterLeads('In-Progress')">Progress</button>
+                <button class="tab" onclick="filterLeads('In-Progress')">In-Progress</button>
                 <button class="tab" onclick="filterLeads('Won')">Won</button>
             </div>
         </header>
@@ -78,11 +79,13 @@
                     <input type="text" id="profile-address-input" class="profile-edit-input" placeholder="Enter address..." onchange="syncProfileToData()">
                 </div>
             </div>
-            <div class="profile-card" style="margin-top: 20px;">
-    <h3 style="font-size: 16px; margin-bottom: 12px; color: var(--teal-primary);">Lead Notes</h3>
+            <div class="profile-card" style="margin-top: 20px; text-align: left;">
+    <h3 style="font-size: 14px; margin-bottom: 8px; color: var(--teal-primary); text-transform: uppercase; letter-spacing: 1px;">
+        Lead Notes
+    </h3>
     <textarea id="profile-notes-input" 
               placeholder="Tap to add notes about this lead..." 
-              style="width: 100%; min-height: 120px; border: 1px solid #eee; border-radius: 12px; padding: 12px; font-family: inherit; font-size: 14px; resize: none; background: #fafafa;"
+              style="width: 100%; min-height: 120px; border: 1px solid #eee; border-radius: 12px; padding: 15px; font-family: inherit; font-size: 14px; resize: none; background: #fafafa; display: block; box-sizing: border-box;"
               onchange="syncProfileToData()"></textarea>
 </div>
             <div class="activity-section">
@@ -107,6 +110,8 @@
             <div class="modal-header"><h2>Add New Lead</h2><button onclick="closeModal()" class="close-btn">✕</button></div>
             <form id="lead-form">
                 <input type="text" id="lead-name" placeholder="Lead Name" required>
+                <input type="text" id="lead-company" placeholder="Company Name">
+
                 <input type="text" id="lead-source" placeholder="Source" required>
                 <input type="number" id="lead-value" placeholder="Value (£)" required>
                 <input type="text" id="lead-phone" placeholder="Phone Number" required>
@@ -122,7 +127,15 @@
 
         <div class="detail-header">
             <h2 id="detail-name">Lead Name</h2>
+            <p id="detail-company-text" style="color: var(--teal-primary); font-weight: 600; margin-top: -15px; margin-bottom: 20px;"></p>
         </div>
+
+        <div class="details-list">
+    <div class="detail-item">
+        <label>Company</label>
+        <input type="text" id="profile-company-input" class="profile-edit-input" placeholder="Enter company name..." onchange="syncProfileToData()">
+    </div>
+    </div>
 
         <div class="detail-body">
             <div class="info-group">
