@@ -1,14 +1,6 @@
 // 1. DATA SETUP & STATE
 let currentFilter = 'New';
 let activeLeadId = null;
-let touchStartX = 0;
-let isDragging = false;
-let touchMoved = false; 
-
-// Swipe-down modal state
-let modalStartY = 0;
-let modalCurrentY = 0;
-let isDraggingModal = false;
 
 let rawData = localStorage.getItem('myLeads');
 let leads = rawData ? JSON.parse(rawData) : [
@@ -48,15 +40,13 @@ function openFullProfile() {
     const pVal = document.getElementById('detail-phone-input').value;
     const eVal = document.getElementById('detail-email-input').value;
     if ((pVal !== "" && !validatePhone(pVal)) || (eVal !== "" && !validateEmail(eVal))) {
-        showValidationError("Please fix the contact details first.");
+        alert("Please fix the contact details first.");
         return;
     }
 
-    // Populate Profile Header
     document.getElementById('profile-main-name').innerText = lead.name;
     updateProfileSubInfo(lead);
 
-    // Populate Profile Inputs
     document.getElementById('profile-company-input').value = lead.company || "";
     document.getElementById('profile-phone-input').value = lead.phone || "";
     document.getElementById('profile-email-input').value = lead.email || "";
@@ -104,7 +94,7 @@ function renderActivities(lead) {
     `).join('');
 }
 
-// 4. PIPELINE & LEAD RENDERING
+// 4. PIPELINE & LEAD RENDERING (Cleaned with Trash Icon)
 function renderLeads() {
     const container = document.getElementById('leads-container');
     if (!container) return;
@@ -119,16 +109,17 @@ function renderLeads() {
         const companyInfo = lead.company ? `<span style="font-weight:600; color:var(--teal-primary)">${lead.company}</span> • ` : "";
         
         cardWrapper.innerHTML = `
-            <div class="lead-card" 
-                id="card-${lead.id}"
-                onclick="openLeadDetail(${lead.id})"
-                ontouchstart="handleTouchStart(event)"
-                ontouchmove="handleTouchMove(event)"
-                ontouchend="handleTouchEnd(event, ${lead.id})">
+            <div class="lead-card" onclick="openLeadDetail(${lead.id})">
                 <div class="card-info">
                     <h3>${lead.name}</h3>
                     <p>${companyInfo}${lead.source} • £${lead.value}</p>
                 </div>
+                <button class="delete-btn-inline" onclick="event.stopPropagation(); requestDelete(${lead.id})">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                </button>
             </div>
         `;
         container.appendChild(cardWrapper);
@@ -138,12 +129,14 @@ function renderLeads() {
 function filterLeads(stage) {
     currentFilter = stage;
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    if (event && event.target) event.target.classList.add('active');
+    // Handle cases where filter is called from click event
+    if (event && event.target && event.target.classList.contains('tab')) {
+        event.target.classList.add('active');
+    }
     renderLeads();
 }
 
 function openLeadDetail(id) {
-    if (touchMoved) return; 
     activeLeadId = id;
     const lead = leads.find(l => l.id === id);
     if (lead) {
@@ -156,51 +149,33 @@ function openLeadDetail(id) {
     }
 }
 
-// 5. TOUCH & SWIPE LOGIC (LEAD CARDS)
-function handleTouchStart(e) {
-    isDragging = true;
-    touchMoved = false; 
-    touchStartX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
-    e.currentTarget.style.transition = 'none';
+// 5. DELETE LOGIC
+function requestDelete(id) {
+    activeLeadId = id;
+    openDeleteModal();
 }
 
-function handleTouchMove(e) {
-    if (!isDragging) return;
-    let currentX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
-    const diffX = touchStartX - currentX;
-
-    if (Math.abs(diffX) > 10) {
-        touchMoved = true;
-        const card = e.currentTarget;
-        if (diffX > 0 && diffX < 150) {
-            card.style.transform = `translateX(-${diffX}px)`;
-        }
-    }
+function openDeleteModal() { 
+    document.getElementById('delete-modal').style.display = 'flex'; 
+    document.getElementById('confirm-delete-btn').onclick = () => { 
+        deleteLead(activeLeadId); 
+        closeDeleteModal(); 
+    }; 
 }
 
-let leadToDelete = null;
-function handleTouchEnd(e, id) {
-    if (!isDragging) return;
-    isDragging = false;
-    const card = e.currentTarget;
-    const currentX = (e.type === 'touchend' || e.type === 'mouseup') ? (e.changedTouches ? e.changedTouches[0].clientX : e.clientX) : touchStartX;
-    const diff = touchStartX - currentX;
-    card.style.transition = 'transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28)';
+function closeDeleteModal() { 
+    document.getElementById('delete-modal').style.display = 'none'; 
+}
 
-    if (touchMoved && diff > 80) {
-        card.style.transform = 'translateX(-100px)';
-        leadToDelete = id;
-        openDeleteModal();
-    } else {
-        card.style.transform = 'translateX(0)';
-        setTimeout(() => { touchMoved = false; }, 300);
-    }
+function deleteLead(id) {
+    leads = leads.filter(l => l.id !== id);
+    saveData();
+    renderLeads();
 }
 
 // 6. MODAL UTILITIES
 function openModal() {
-    const modal = document.getElementById('add-lead-modal');
-    modal.style.display = 'flex';
+    document.getElementById('add-lead-modal').style.display = 'flex';
 }
 
 function closeModal() {
@@ -211,18 +186,15 @@ function closeDetail() {
     document.getElementById('lead-detail-screen').style.display = 'none'; 
 }
 
+function handleBackdropClick(event) {
+    if (event.target.id === 'lead-detail-screen') closeDetail();
+}
+
 // 7. DATA PERSISTENCE & SYNC
 function saveData() { 
     localStorage.setItem('myLeads', JSON.stringify(leads)); 
 }
 
-function deleteLead(id) {
-    leads = leads.filter(l => l.id !== id);
-    saveData();
-    renderLeads();
-}
-
-// Handle Add Lead Form
 const leadForm = document.getElementById('lead-form');
 if(leadForm) {
     leadForm.addEventListener('submit', function(e) {
@@ -247,7 +219,6 @@ if(leadForm) {
     });
 }
 
-// Sync from Summary Card
 function updateLeadContact() {
     const idx = leads.findIndex(l => l.id === activeLeadId);
     if (idx !== -1) {
@@ -269,7 +240,6 @@ function updateLeadStatus() {
     }
 }
 
-// Sync from Full Profile Screen
 function syncProfileToData() {
     const idx = leads.findIndex(l => l.id === activeLeadId);
     if (idx !== -1) {
@@ -278,10 +248,7 @@ function syncProfileToData() {
         leads[idx].email = document.getElementById('profile-email-input').value;
         leads[idx].address = document.getElementById('profile-address-input').value;
         leads[idx].notes = document.getElementById('profile-notes-input').value;
-        
-        // Live update the header info while typing
         updateProfileSubInfo(leads[idx]);
-        
         saveData();
         renderLeads();
     }
@@ -293,38 +260,12 @@ function updateProfileSubInfo(lead) {
     if(infoEl) infoEl.innerText = `${companyDisplay}${lead.source} • £${lead.value}`;
 }
 
-// 8. VALIDATION & HELPERS
+// 8. VALIDATION
 function validateEmail(email) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); }
 function validatePhone(phone) { return phone.replace(/[^0-9+]/g, '').length >= 11; }
 function validateLive(el, type) { 
     el.classList.toggle('invalid-input', el.value !== "" && (type === 'phone' ? !validatePhone(el.value) : !validateEmail(el.value))); 
 }
 
-function openDeleteModal() { 
-    document.getElementById('delete-modal').style.display = 'flex'; 
-    document.getElementById('confirm-delete-btn').onclick = () => { 
-        deleteLead(leadToDelete); 
-        closeDeleteModal(); 
-    }; 
-}
-
-function closeDeleteModal() { 
-    document.getElementById('delete-modal').style.display = 'none'; 
-    renderLeads(); 
-}
-
-function handleBackdropClick(e) {
-    if (e.target.classList.contains('modal-overlay')) closeDetail();
-}
-
-function showValidationError(m) { 
-    document.getElementById('validation-error-text').innerText = m; 
-    document.getElementById('validation-modal').style.display = 'flex'; 
-}
-
-function closeValidationModal() { 
-    document.getElementById('validation-modal').style.display = 'none'; 
-}
-
-// Initialize UI
+// Initial Load
 renderLeads();

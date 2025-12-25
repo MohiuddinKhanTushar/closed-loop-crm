@@ -6,6 +6,7 @@
     --text-dark: #1a1a1a;
     --gray-light: #eee;
     --red-delete: #ff3b30;
+    --red-bg: #fff5f5;
 }
 
 body {
@@ -49,7 +50,6 @@ body {
     height: 80px !important;
     width: auto;
     object-fit: contain;
-    /* Removed filter to keep original colors */
 }
 
 .menu-btn {
@@ -117,61 +117,36 @@ body {
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
-/* --- LEAD CARDS & SWIPE LOGIC --- */
+/* --- CLEANED LEAD CARDS (No Swipe) --- */
 .content {
     padding-bottom: 100px;
     min-height: calc(100vh - 180px);
 }
 
 .lead-card-container {
-    position: relative;
     margin: 12px 16px;
     border-radius: 16px;
     background-color: var(--white);
-    overflow: hidden;
     box-shadow: 0 4px 12px rgba(0,0,0,0.04);
-}
-
-.lead-card-container::before {
-    content: "Delete";
-    position: absolute;
-    right: 0px;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    background: linear-gradient(to left, var(--red-delete) 0%, var(--red-delete) 100px, var(--white) 100px);
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    padding-right: 25px;
-    color: white;
-    font-weight: bold;
-    font-size: 14px;
-    border-radius: 16px;
-    z-index: 1;
-}
-
-.delete-background {
-    display: none;
+    overflow: hidden;
 }
 
 .lead-card {
-    position: relative;
-    z-index: 2;
-    background: var(--white);
     padding: 18px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     cursor: pointer;
-    margin: 0; /* Important: removes red gap */
-    border-radius: 0;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.04);
-    transition: transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
-    touch-action: pan-y;
+    transition: background 0.2s;
     -webkit-tap-highlight-color: transparent;
-    outline: 1px solid var(--white);
-    will-change: transform;
+}
+
+.lead-card:active {
+    background: #f9f9f9;
+}
+
+.card-info {
+    flex: 1;
 }
 
 .card-info h3 {
@@ -186,21 +161,40 @@ body {
     font-size: 14px;
 }
 
-.swiped {
-    transform: translateX(-100px);
+/* --- TRASH ICON STYLING --- */
+.delete-btn-inline {
+    background: var(--red-bg);
+    border: none;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 10px;
+    cursor: pointer;
+    transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.delete-btn-inline svg {
+    stroke: var(--red-delete);
+}
+
+.delete-btn-inline:active {
+    background: #ffdada;
+    transform: scale(0.9);
 }
 
 /* --- SIDE MENU --- */
 .side-menu {
     position: fixed;
     top: 0;
-    left: 0; /* Align to the left edge */
+    left: 0;
     width: 280px;
     height: 100%;
     background: white;
     z-index: 2100;
-    /* Start the menu exactly one full width to the left */
-    transform: translateX(-100%); 
+    transform: translateX(-105%); 
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     padding: 25px;
     box-sizing: border-box;
@@ -211,7 +205,6 @@ body {
     box-shadow: 5px 0 25px rgba(0,0,0,0.15);
 }
 
-/* --- THE OVERLAY (TAP TO CLOSE) --- */
 .menu-overlay {
     position: fixed;
     top: 0;
@@ -228,13 +221,6 @@ body {
 .menu-overlay.active {
     display: block;
     opacity: 1;
-}
-
-.menu-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 30px;
 }
 
 .side-menu a {
@@ -261,11 +247,6 @@ body {
     z-index: 999;
 }
 
-.nav-icon svg {
-    stroke: #999;
-    transition: 0.3s;
-}
-
 .nav-icon.active svg {
     stroke: var(--teal-primary);
 }
@@ -283,12 +264,9 @@ body {
     margin-top: -40px;
     box-shadow: 0 6px 16px rgba(39, 104, 95, 0.35);
     cursor: pointer;
-    line-height: 1;
-    padding-bottom: 6px;
-    box-sizing: border-box;
 }
 
-/* --- MODALS --- */
+/* --- MODALS & PROFILES --- */
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -301,14 +279,15 @@ body {
     z-index: 1000;
 }
 
-.modal-content {
+.modal-content, .lead-detail-card {
     background: white;
     width: 100%;
     padding: 30px 25px 40px;
     border-radius: 30px 30px 0 0;
+    box-sizing: border-box;
 }
 
-input, select {
+input, select, textarea {
     width: 100%;
     padding: 14px;
     margin: 8px 0 18px;
@@ -326,220 +305,9 @@ input, select {
     border: none;
     border-radius: 12px;
     font-weight: 700;
-    font-size: 16px;
 }
 
-.close-btn {
-    background: none;
-    border: none;
-    font-size: 24px;
-    color: #888;
-}
-
-/* Uniform look for all inputs in the Summary Card */
-.info-group input, .info-group select {
-    width: 100%;
-    border: none;
-    border-bottom: 1px solid #f0f0f0;
-    border-radius: 0;
-    padding: 10px 0;
-    margin: 4px 0 18px;
-    font-size: 15px;
-    font-weight: 500;
-    background: transparent;
-    font-family: inherit;
-    transition: 0.3s;
-}
-
-.info-group input:focus {
-    border-bottom: 1px solid var(--teal-primary);
-    outline: none;
-}
-
-.info-group label {
-    display: block;
-    font-size: 11px;
-    text-transform: uppercase;
-    color: #999;
-    font-weight: bold;
-    letter-spacing: 0.5px;
-}
-
-.ai-box {
-    background: #f0f7f6;
-    padding: 15px;
-    border-radius: 12px;
-    border: 1px dashed var(--teal-primary);
-}
-
-.action-buttons {
-    display: flex;
-    gap: 10px;
-}
-
-.action-btn {
-    flex: 1;
-    padding: 12px;
-    border-radius: 8px;
-    border: 1px solid var(--teal-primary);
-    background: white;
-    color: var(--teal-primary);
-    font-weight: bold;
-}
-
-/* --- LEAD PROFILE SCREEN --- */
-.profile-card {
-    background: white;
-    margin: -30px 16px 16px;
-    padding: 24px;
-    border-radius: 20px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-    text-align: center;
-    position: relative;
-    z-index: 5;
-}
-
-.action-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
-    margin-top: 20px;
-}
-
-.action-btn {
-    background: #f0f7f6;
-    border: 1px solid #e0eeed;
-    border-radius: 12px;
-    padding: 12px 5px;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--teal-primary);
-    cursor: pointer;
-    transition: 0.2s;
-}
-
-.action-btn:active {
-    background: var(--teal-primary);
-    color: white;
-}
-
-.details-list {
-    background: white;
-    margin: 0 16px 16px;
-    padding: 10px 20px;
-    border-radius: 16px;
-}
-
-.detail-item {
-    padding: 12px 0;
-    border-bottom: 1px solid #f0f0f0;
-}
-
-.detail-item:last-child { border: none; }
-
-.detail-item label {
-    font-size: 11px;
-    text-transform: uppercase;
-    color: #999;
-    font-weight: bold;
-}
-
-.detail-item p { margin: 4px 0 0; font-size: 15px; font-weight: 500; }
-
-.activity-section { padding: 0 16px; }
-
-.timeline {
-    background: white;
-    border-radius: 16px;
-    padding: 20px;
-    margin-top: 10px;
-}
-
-.timeline-item {
-    position: relative;
-    padding-left: 25px;
-    padding-bottom: 20px;
-    border-left: 2px solid #f0f0f0;
-}
-
-.timeline-item:last-child { border: none; }
-
-.timeline-dot {
-    position: absolute;
-    left: -7px;
-    top: 5px;
-    width: 12px;
-    height: 12px;
-    background: var(--teal-primary);
-    border-radius: 50%;
-    border: 3px solid white;
-}
-
-.profile-edit-input {
-    width: 100%;
-    border: none;
-    padding: 8px 0;
-    font-size: 15px;
-    font-weight: 500;
-    color: var(--text-dark);
-    background: transparent;
-    outline: none;
-    border-bottom: 1px solid transparent;
-    transition: border-bottom 0.3s;
-}
-
-.profile-edit-input:focus {
-    border-bottom: 1px solid var(--teal-primary);
-    background: #f9f9f9;
-}
-
-/* Validation Styles */
 .invalid-input {
-    border-color: #ff3b30 !important;
+    border-color: var(--red-delete) !important;
     background-color: #fff9f9 !important;
-}
-
-.error-message {
-    color: #ff3b30;
-    font-size: 11px;
-    margin-top: -12px;
-    margin-bottom: 10px;
-    display: none; /* Hidden by default */
-}
-
-.timeline-item p { margin: 0; font-size: 14px; font-weight: 500; }
-.timeline-item span { font-size: 11px; color: #999; }
-
-.lead-detail-card::before {
-    content: "";
-    width: 40px;
-    height: 5px;
-    background: #e0e0e0;
-    border-radius: 10px;
-    position: absolute;
-    top: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-}
-
-/* Restores the Summary Box Look */
-.lead-detail-card {
-    background: white;
-    width: 100%;
-    padding: 30px 25px 40px;
-    border-radius: 30px 30px 0 0; /* Rounds the top corners */
-    position: relative; /* Needed for the grab handle */
-    box-shadow: 0 -5px 25px rgba(0,0,0,0.1);
-}
-
-/* Fixes the alignment for labels and inputs inside the summary */
-.detail-body {
-    text-align: left;
-    width: 100%;
-}
-
-.detail-header h2 {
-    margin-top: 10px;
-    margin-bottom: 20px;
-    text-align: left;
 }
