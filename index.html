@@ -9,14 +9,12 @@
 <body>
 
     <div id="side-menu" class="side-menu">
-    <div class="menu-header">
-        <h3>Menu</h3>
+        <div class="menu-header"><h3>Menu</h3></div>
+        <a href="#" onclick="showScreen('pipeline-screen'); toggleMenu();">Pipeline</a>
+        <a href="#" onclick="showScreen('roi-screen'); toggleMenu();">ROI Dashboard</a>
     </div>
-    <a href="#" onclick="showScreen('pipeline-screen'); toggleMenu();">Pipeline</a>
-    <a href="#" onclick="showScreen('roi-screen'); toggleMenu();">ROI Dashboard</a>
-</div>
 
-<div id="menu-overlay" class="menu-overlay" onclick="toggleMenu()"></div>
+    <div id="menu-overlay" class="menu-overlay" onclick="toggleMenu()"></div>
 
     <section id="pipeline-screen" class="screen">
         <header class="teal-header">
@@ -67,6 +65,10 @@
 
             <div class="details-list">
                 <div class="detail-item">
+                    <label>Company</label>
+                    <input type="text" id="profile-company-input" class="profile-edit-input" placeholder="Enter company name..." onchange="syncProfileToData()">
+                </div>
+                <div class="detail-item">
                     <label>Phone</label>
                     <input type="tel" id="profile-phone-input" class="profile-edit-input" oninput="validateLive(this, 'phone')" onchange="syncProfileToData()">
                 </div>
@@ -79,15 +81,12 @@
                     <input type="text" id="profile-address-input" class="profile-edit-input" placeholder="Enter address..." onchange="syncProfileToData()">
                 </div>
             </div>
+
             <div class="profile-card" style="margin-top: 20px; text-align: left;">
-    <h3 style="font-size: 14px; margin-bottom: 8px; color: var(--teal-primary); text-transform: uppercase; letter-spacing: 1px;">
-        Lead Notes
-    </h3>
-    <textarea id="profile-notes-input" 
-              placeholder="Tap to add notes about this lead..." 
-              style="width: 100%; min-height: 120px; border: 1px solid #eee; border-radius: 12px; padding: 15px; font-family: inherit; font-size: 14px; resize: none; background: #fafafa; display: block; box-sizing: border-box;"
-              onchange="syncProfileToData()"></textarea>
-</div>
+                <h3 style="font-size: 14px; margin-bottom: 8px; color: var(--teal-primary); text-transform: uppercase; letter-spacing: 1px;">Lead Notes</h3>
+                <textarea id="profile-notes-input" placeholder="Tap to add notes..." style="width: 100%; min-height: 120px; border: 1px solid #eee; border-radius: 12px; padding: 15px; font-family: inherit; font-size: 14px; resize: none; background: #fafafa; display: block; box-sizing: border-box;" onchange="syncProfileToData()"></textarea>
+            </div>
+
             <div class="activity-section">
                 <h3>Activity History</h3>
                 <div id="activity-log" class="timeline"></div>
@@ -95,15 +94,43 @@
         </main>
     </section>
 
-    <nav class="bottom-nav">
-        <div class="nav-icon active" onclick="showScreen('pipeline-screen')">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+    <div id="lead-detail-screen" class="modal-overlay" onclick="handleBackdropClick(event)" style="display: none;">
+        <div class="lead-detail-card" onclick="event.stopPropagation()">
+            <div style="width: 40px; height: 5px; background: #e0e0e0; border-radius: 10px; margin: -15px auto 20px;"></div>
+
+            <div class="detail-header">
+                <h2 id="detail-name" style="margin-bottom: 25px;">Lead Name</h2>
+            </div>
+
+            <div class="detail-body">
+                <div class="info-group">
+                    <label>Company Name</label>
+                    <input type="text" id="detail-company-input" placeholder="Add company..." onchange="updateLeadContact()">
+                </div>
+
+                <div class="info-group">
+                    <label>Phone Number</label>
+                    <input type="tel" id="detail-phone-input" placeholder="Add phone..." oninput="validateLive(this, 'phone')" onchange="updateLeadContact()">
+                </div>
+
+                <div class="info-group">
+                    <label>Email Address</label>
+                    <input type="email" id="detail-email-input" placeholder="Add email..." oninput="validateLive(this, 'email')" onchange="updateLeadContact()">
+                </div>
+
+                <div class="info-group">
+                    <label>Pipeline Stage</label>
+                    <select id="detail-status-select" onchange="updateLeadStatus()">
+                        <option value="New">New</option>
+                        <option value="In-Progress">In-Progress</option>
+                        <option value="Won">Won</option>
+                    </select>
+                </div>
+                
+                <button class="save-btn" onclick="openFullProfile()" style="margin-top: 10px;">Activity & Contact</button>
+            </div>
         </div>
-        <div class="fab" onclick="openModal()">+</div>
-        <div class="nav-icon" onclick="showScreen('settings-screen')">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-        </div>
-    </nav>
+    </div>
 
     <div id="add-lead-modal" class="modal-overlay" style="display: none;">
         <div class="modal-content">
@@ -111,7 +138,6 @@
             <form id="lead-form">
                 <input type="text" id="lead-name" placeholder="Lead Name" required>
                 <input type="text" id="lead-company" placeholder="Company Name">
-
                 <input type="text" id="lead-source" placeholder="Source" required>
                 <input type="number" id="lead-value" placeholder="Value (£)" required>
                 <input type="text" id="lead-phone" placeholder="Phone Number" required>
@@ -121,79 +147,29 @@
         </div>
     </div>
 
-    <div id="lead-detail-screen" class="modal-overlay" onclick="handleBackdropClick(event)" style="display: none;">
-    <div class="lead-detail-card" onclick="event.stopPropagation()">
-        <div style="width: 40px; height: 5px; background: #e0e0e0; border-radius: 10px; margin: -15px auto 20px;"></div>
-
-        <div class="detail-header">
-            <h2 id="detail-name">Lead Name</h2>
-            <p id="detail-company-text" style="color: var(--teal-primary); font-weight: 600; margin-top: -15px; margin-bottom: 20px;"></p>
-        </div>
-
-        <div class="details-list">
-    <div class="detail-item">
-        <label>Company</label>
-        <input type="text" id="profile-company-input" class="profile-edit-input" placeholder="Enter company name..." onchange="syncProfileToData()">
-    </div>
-    </div>
-
-        <div class="detail-body">
-            <div class="info-group">
-                <label>Phone Number</label>
-                <input type="tel" id="detail-phone-input" placeholder="Add phone..." oninput="validateLive(this, 'phone')" onchange="updateLeadContact()">
+    <div id="delete-modal" class="modal-overlay" style="display: none; align-items: center; justify-content: center;">
+        <div class="modal-content" style="width: 85%; border-radius: 20px; padding: 25px; text-align: center;">
+            <div style="background: #ffebee; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px;">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#ff3b30" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
             </div>
-
-            <div class="info-group">
-                <label>Email Address</label>
-                <input type="email" id="detail-email-input" placeholder="Add email..." oninput="validateLive(this, 'email')" onchange="updateLeadContact()">
+            <h3 style="margin: 0 0 10px 0;">Delete Lead?</h3>
+            <div style="display: flex; gap: 12px; margin-top: 20px;">
+                <button onclick="closeDeleteModal()" style="flex: 1; padding: 15px; border-radius: 12px; border: 1px solid #ddd; background: white; font-weight: 600;">Cancel</button>
+                <button id="confirm-delete-btn" style="flex: 1; padding: 15px; border-radius: 12px; border: none; background: #ff3b30; color: white; font-weight: 600;">Delete</button>
             </div>
-
-            <div class="info-group">
-                <label>Pipeline Stage</label>
-                <select id="detail-status-select" onchange="updateLeadStatus()">
-                    <option value="New">New</option>
-                    <option value="In-Progress">In-Progress</option>
-                    <option value="Won">Won</option>
-                </select>
-            </div>
-            
-            <button class="save-btn" onclick="openFullProfile()" style="margin-top: 10px;">Activity & Contact</button>
         </div>
     </div>
-</div>
+
+    <nav class="bottom-nav">
+        <div class="nav-icon active" onclick="showScreen('pipeline-screen')">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+        </div>
+        <div class="fab" onclick="openModal()">+</div>
+        <div class="nav-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        </div>
+    </nav>
 
     <script src="script.js"></script>
-
-<div id="delete-modal" class="modal-overlay" style="display: none; align-items: center; justify-content: center;">
-    <div class="modal-content" style="width: 85%; border-radius: 20px; padding: 25px; text-align: center;">
-        <div style="background: #ffebee; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px;">
-            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#ff3b30" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-        </div>
-        <h3 style="margin: 0 0 10px 0;">Delete Lead?</h3>
-        <p style="color: #666; font-size: 14px; margin-bottom: 25px;">This action cannot be undone. Are you sure you want to remove this lead?</p>
-        
-        <div style="display: flex; gap: 12px;">
-            <button onclick="closeDeleteModal()" style="flex: 1; padding: 15px; border-radius: 12px; border: 1px solid #ddd; background: white; font-weight: 600;">Cancel</button>
-            <button id="confirm-delete-btn" style="flex: 1; padding: 15px; border-radius: 12px; border: none; background: #ff3b30; color: white; font-weight: 600;">Delete</button>
-        </div>
-    </div>
-</div>
-
-<div id="validation-modal" class="modal-overlay" style="display: none; align-items: center; justify-content: center;">
-    <div class="modal-content" style="width: 85%; border-radius: 20px; padding: 25px; text-align: center;">
-        <div style="background: #fff3e0; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px;">
-            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#ff9500" stroke-width="2">
-                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-                <line x1="12" y1="9" x2="12" y2="13"></line>
-                <line x1="12" y1="17" x2="12.01" y2="17"></line>
-            </svg>
-        </div>
-        <h3 style="margin: 0 0 10px 0;">Check Format</h3>
-        <p id="validation-error-text" style="color: #666; font-size: 14px; margin-bottom: 25px;">Please check your input.</p>
-        
-        <button onclick="closeValidationModal()" style="width: 100%; padding: 15px; border-radius: 12px; border: none; background: var(--teal-primary); color: white; font-weight: 600;">Got it</button>
-    </div>
-</div>
-
 </body>
 </html>

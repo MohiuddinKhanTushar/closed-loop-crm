@@ -336,13 +336,33 @@ input, select {
     color: #888;
 }
 
+/* Uniform look for all inputs in the Summary Card */
+.info-group input, .info-group select {
+    width: 100%;
+    border: none;
+    border-bottom: 1px solid #f0f0f0;
+    border-radius: 0;
+    padding: 10px 0;
+    margin: 4px 0 18px;
+    font-size: 15px;
+    font-weight: 500;
+    background: transparent;
+    font-family: inherit;
+    transition: 0.3s;
+}
+
+.info-group input:focus {
+    border-bottom: 1px solid var(--teal-primary);
+    outline: none;
+}
+
 .info-group label {
     display: block;
-    font-size: 12px;
+    font-size: 11px;
     text-transform: uppercase;
-    color: #888;
-    margin-bottom: 8px;
+    color: #999;
     font-weight: bold;
+    letter-spacing: 0.5px;
 }
 
 .ai-box {
@@ -458,7 +478,7 @@ input, select {
 .profile-edit-input {
     width: 100%;
     border: none;
-    padding: 5px 0;
+    padding: 8px 0;
     font-size: 15px;
     font-weight: 500;
     color: var(--text-dark);

@@ -12,7 +12,7 @@ let isDraggingModal = false;
 
 let rawData = localStorage.getItem('myLeads');
 let leads = rawData ? JSON.parse(rawData) : [
-    { id: 1, name: "John Smith", company: "Example Corp", source: "Instagram", value: 1200, status: 'New', activities: [], phone: "", email: "", address: "" }
+    { id: 1, name: "John Smith", company: "Example Corp", source: "Instagram", value: 1200, status: 'New', activities: [], phone: "", email: "", address: "", notes: "" }
 ];
 
 // 2. NAVIGATION & SCREENS
@@ -44,21 +44,20 @@ function openFullProfile() {
     const lead = leads.find(l => l.id === activeLeadId);
     if (!lead) return;
 
+    // Validation check before moving to profile
     const pVal = document.getElementById('detail-phone-input').value;
     const eVal = document.getElementById('detail-email-input').value;
-
     if ((pVal !== "" && !validatePhone(pVal)) || (eVal !== "" && !validateEmail(eVal))) {
         showValidationError("Please fix the contact details first.");
         return;
     }
 
-    // UPDATED: Show company name in the profile header
+    // Populate Profile Header
     document.getElementById('profile-main-name').innerText = lead.name;
-    const companyDisplay = lead.company ? `${lead.company} • ` : "";
-    document.getElementById('profile-sub-info').innerText = `${companyDisplay}${lead.source} • £${lead.value}`;
+    updateProfileSubInfo(lead);
 
+    // Populate Profile Inputs
     document.getElementById('profile-company-input').value = lead.company || "";
-    
     document.getElementById('profile-phone-input').value = lead.phone || "";
     document.getElementById('profile-email-input').value = lead.email || "";
     document.getElementById('profile-address-input').value = lead.address || "";
@@ -117,7 +116,6 @@ function renderLeads() {
         const cardWrapper = document.createElement('div');
         cardWrapper.className = 'lead-card-container';
         
-        // UPDATED: Added company display logic to the lead card
         const companyInfo = lead.company ? `<span style="font-weight:600; color:var(--teal-primary)">${lead.company}</span> • ` : "";
         
         cardWrapper.innerHTML = `
@@ -150,7 +148,7 @@ function openLeadDetail(id) {
     const lead = leads.find(l => l.id === id);
     if (lead) {
         document.getElementById('detail-name').innerText = lead.name;
-        document.getElementById('detail-company-text').innerText = lead.company || "No Company Added";
+        document.getElementById('detail-company-input').value = lead.company || '';
         document.getElementById('detail-status-select').value = lead.status;
         document.getElementById('detail-phone-input').value = lead.phone || '';
         document.getElementById('detail-email-input').value = lead.email || '';
@@ -199,54 +197,24 @@ function handleTouchEnd(e, id) {
     }
 }
 
-// 6. SWIPE-TO-CLOSE LOGIC (ADD LEAD MODAL)
-function initModalSwipe() {
-    const modal = document.getElementById('add-lead-modal');
-    const content = modal.querySelector('.modal-content');
-    if (!content) return;
-
-    content.addEventListener('touchstart', (e) => {
-        modalStartY = e.touches[0].clientY;
-        isDraggingModal = true;
-        content.style.transition = 'none';
-    }, { passive: true });
-
-    content.addEventListener('touchmove', (e) => {
-        if (!isDraggingModal) return;
-        modalCurrentY = e.touches[0].clientY;
-        const diffY = modalCurrentY - modalStartY;
-        if (diffY > 0) {
-            content.style.transform = `translateY(${diffY}px)`;
-        }
-    }, { passive: true });
-
-    content.addEventListener('touchend', () => {
-        if (!isDraggingModal) return;
-        isDraggingModal = false;
-        const diffY = modalCurrentY - modalStartY;
-        content.style.transition = 'transform 0.3s cubic-bezier(0.15, 0, 0.15, 1)';
-
-        if (diffY > 150) closeModal();
-        else content.style.transform = 'translateY(0)';
-    });
-}
-
+// 6. MODAL UTILITIES
 function openModal() {
     const modal = document.getElementById('add-lead-modal');
-    const content = modal.querySelector('.modal-content');
     modal.style.display = 'flex';
-    content.style.transform = 'translateY(0)';
 }
 
 function closeModal() {
-    const modal = document.getElementById('add-lead-modal');
-    const content = modal.querySelector('.modal-content');
-    modal.style.display = 'none';
-    content.style.transform = 'translateY(0)';
+    document.getElementById('add-lead-modal').style.display = 'none';
 }
 
-// 7. PERSISTENCE & HELPERS
-function saveData() { localStorage.setItem('myLeads', JSON.stringify(leads)); }
+function closeDetail() { 
+    document.getElementById('lead-detail-screen').style.display = 'none'; 
+}
+
+// 7. DATA PERSISTENCE & SYNC
+function saveData() { 
+    localStorage.setItem('myLeads', JSON.stringify(leads)); 
+}
 
 function deleteLead(id) {
     leads = leads.filter(l => l.id !== id);
@@ -254,24 +222,23 @@ function deleteLead(id) {
     renderLeads();
 }
 
+// Handle Add Lead Form
 const leadForm = document.getElementById('lead-form');
 if(leadForm) {
     leadForm.addEventListener('submit', function(e) {
         e.preventDefault();
-        const phoneVal = document.getElementById('lead-phone').value;
-        const emailVal = document.getElementById('lead-email').value;
-
-        // Validation... (same as your logic)
         leads.push({
             id: Date.now(),
             name: document.getElementById('lead-name').value,
-            company: document.getElementById('lead-company').value, // SAVING COMPANY
+            company: document.getElementById('lead-company').value,
             source: document.getElementById('lead-source').value,
             value: document.getElementById('lead-value').value,
-            phone: phoneVal,
-            email: emailVal,
+            phone: document.getElementById('lead-phone').value,
+            email: document.getElementById('lead-email').value,
             status: 'New',
-            activities: []
+            activities: [],
+            notes: "",
+            address: ""
         });
         saveData();
         renderLeads();
@@ -280,6 +247,29 @@ if(leadForm) {
     });
 }
 
+// Sync from Summary Card
+function updateLeadContact() {
+    const idx = leads.findIndex(l => l.id === activeLeadId);
+    if (idx !== -1) {
+        leads[idx].company = document.getElementById('detail-company-input').value;
+        leads[idx].phone = document.getElementById('detail-phone-input').value;
+        leads[idx].email = document.getElementById('detail-email-input').value;
+        saveData();
+        renderLeads();
+    }
+}
+
+function updateLeadStatus() {
+    const idx = leads.findIndex(l => l.id === activeLeadId);
+    if (idx !== -1) {
+        leads[idx].status = document.getElementById('detail-status-select').value;
+        saveData();
+        renderLeads();
+        closeDetail();
+    }
+}
+
+// Sync from Full Profile Screen
 function syncProfileToData() {
     const idx = leads.findIndex(l => l.id === activeLeadId);
     if (idx !== -1) {
@@ -288,21 +278,53 @@ function syncProfileToData() {
         leads[idx].email = document.getElementById('profile-email-input').value;
         leads[idx].address = document.getElementById('profile-address-input').value;
         leads[idx].notes = document.getElementById('profile-notes-input').value;
+        
+        // Live update the header info while typing
+        updateProfileSubInfo(leads[idx]);
+        
         saveData();
+        renderLeads();
     }
 }
 
+function updateProfileSubInfo(lead) {
+    const companyDisplay = lead.company ? `${lead.company} • ` : "";
+    const infoEl = document.getElementById('profile-sub-info');
+    if(infoEl) infoEl.innerText = `${companyDisplay}${lead.source} • £${lead.value}`;
+}
+
+// 8. VALIDATION & HELPERS
 function validateEmail(email) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); }
 function validatePhone(phone) { return phone.replace(/[^0-9+]/g, '').length >= 11; }
-function validateLive(el, type) { el.classList.toggle('invalid-input', el.value !== "" && (type === 'phone' ? !validatePhone(el.value) : !validateEmail(el.value))); }
+function validateLive(el, type) { 
+    el.classList.toggle('invalid-input', el.value !== "" && (type === 'phone' ? !validatePhone(el.value) : !validateEmail(el.value))); 
+}
 
-function openDeleteModal() { document.getElementById('delete-modal').style.display = 'flex'; document.getElementById('confirm-delete-btn').onclick = () => { deleteLead(leadToDelete); closeDeleteModal(); }; }
-function closeDeleteModal() { document.getElementById('delete-modal').style.display = 'none'; renderLeads(); }
-function showValidationError(m) { document.getElementById('validation-error-text').innerText = m; document.getElementById('validation-modal').style.display = 'flex'; }
-function closeValidationModal() { document.getElementById('validation-modal').style.display = 'none'; }
-function closeDetail() { document.getElementById('lead-detail-screen').style.display = 'none'; }
-function updateLeadContact() { syncProfileToData(); } // Shortcut for modal edits
+function openDeleteModal() { 
+    document.getElementById('delete-modal').style.display = 'flex'; 
+    document.getElementById('confirm-delete-btn').onclick = () => { 
+        deleteLead(leadToDelete); 
+        closeDeleteModal(); 
+    }; 
+}
 
-// Initialize
+function closeDeleteModal() { 
+    document.getElementById('delete-modal').style.display = 'none'; 
+    renderLeads(); 
+}
+
+function handleBackdropClick(e) {
+    if (e.target.classList.contains('modal-overlay')) closeDetail();
+}
+
+function showValidationError(m) { 
+    document.getElementById('validation-error-text').innerText = m; 
+    document.getElementById('validation-modal').style.display = 'flex'; 
+}
+
+function closeValidationModal() { 
+    document.getElementById('validation-modal').style.display = 'none'; 
+}
+
+// Initialize UI
 renderLeads();
-initModalSwipe();
