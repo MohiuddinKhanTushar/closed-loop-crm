@@ -39,8 +39,9 @@ function openFullProfile() {
     // Validation check before moving to profile
     const pVal = document.getElementById('detail-phone-input').value;
     const eVal = document.getElementById('detail-email-input').value;
+    
     if ((pVal !== "" && !validatePhone(pVal)) || (eVal !== "" && !validateEmail(eVal))) {
-        alert("Please fix the contact details first.");
+        openValidationModal("Please fix the contact details before viewing the full profile.");
         return;
     }
 
@@ -94,7 +95,7 @@ function renderActivities(lead) {
     `).join('');
 }
 
-// 4. PIPELINE & LEAD RENDERING (Cleaned with Trash Icon)
+// 4. PIPELINE & LEAD RENDERING
 function renderLeads() {
     const container = document.getElementById('leads-container');
     if (!container) return;
@@ -129,7 +130,6 @@ function renderLeads() {
 function filterLeads(stage) {
     currentFilter = stage;
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    // Handle cases where filter is called from click event
     if (event && event.target && event.target.classList.contains('tab')) {
         event.target.classList.add('active');
     }
@@ -140,11 +140,19 @@ function openLeadDetail(id) {
     activeLeadId = id;
     const lead = leads.find(l => l.id === id);
     if (lead) {
+        const phoneInput = document.getElementById('detail-phone-input');
+        const emailInput = document.getElementById('detail-email-input');
+        
         document.getElementById('detail-name').innerText = lead.name;
         document.getElementById('detail-company-input').value = lead.company || '';
         document.getElementById('detail-status-select').value = lead.status;
-        document.getElementById('detail-phone-input').value = lead.phone || '';
-        document.getElementById('detail-email-input').value = lead.email || '';
+        phoneInput.value = lead.phone || '';
+        emailInput.value = lead.email || '';
+        
+        // Reset validation highlights when opening
+        phoneInput.classList.remove('invalid-input');
+        emailInput.classList.remove('invalid-input');
+        
         document.getElementById('lead-detail-screen').style.display = 'flex';
     }
 }
@@ -190,6 +198,16 @@ function handleBackdropClick(event) {
     if (event.target.id === 'lead-detail-screen') closeDetail();
 }
 
+// Custom Validation Modal Controls
+function openValidationModal(msg) {
+    if(msg) document.getElementById('validation-error-msg').innerText = msg;
+    document.getElementById('validation-modal').style.display = 'flex';
+}
+
+function closeValidationModal() {
+    document.getElementById('validation-modal').style.display = 'none';
+}
+
 // 7. DATA PERSISTENCE & SYNC
 function saveData() { 
     localStorage.setItem('myLeads', JSON.stringify(leads)); 
@@ -199,14 +217,24 @@ const leadForm = document.getElementById('lead-form');
 if(leadForm) {
     leadForm.addEventListener('submit', function(e) {
         e.preventDefault();
+        
+        const phone = document.getElementById('lead-phone').value;
+        const email = document.getElementById('lead-email').value;
+
+        // Block save if invalid and show custom modal
+        if ((phone !== "" && !validatePhone(phone)) || (email !== "" && !validateEmail(email))) {
+            openValidationModal("The phone or email format is incorrect. Please check and try again.");
+            return;
+        }
+
         leads.push({
             id: Date.now(),
             name: document.getElementById('lead-name').value,
             company: document.getElementById('lead-company').value,
             source: document.getElementById('lead-source').value,
             value: document.getElementById('lead-value').value,
-            phone: document.getElementById('lead-phone').value,
-            email: document.getElementById('lead-email').value,
+            phone: phone,
+            email: email,
             status: 'New',
             activities: [],
             notes: "",
@@ -222,9 +250,17 @@ if(leadForm) {
 function updateLeadContact() {
     const idx = leads.findIndex(l => l.id === activeLeadId);
     if (idx !== -1) {
+        const pVal = document.getElementById('detail-phone-input').value;
+        const eVal = document.getElementById('detail-email-input').value;
+
+        // Silently block data sync if invalid (handled visually by live validation)
+        if ((pVal !== "" && !validatePhone(pVal)) || (eVal !== "" && !validateEmail(eVal))) {
+            return; 
+        }
+
         leads[idx].company = document.getElementById('detail-company-input').value;
-        leads[idx].phone = document.getElementById('detail-phone-input').value;
-        leads[idx].email = document.getElementById('detail-email-input').value;
+        leads[idx].phone = pVal;
+        leads[idx].email = eVal;
         saveData();
         renderLeads();
     }
@@ -243,9 +279,16 @@ function updateLeadStatus() {
 function syncProfileToData() {
     const idx = leads.findIndex(l => l.id === activeLeadId);
     if (idx !== -1) {
+        const pVal = document.getElementById('profile-phone-input').value;
+        const eVal = document.getElementById('profile-email-input').value;
+
+        if ((pVal !== "" && !validatePhone(pVal)) || (eVal !== "" && !validateEmail(eVal))) {
+            return;
+        }
+
         leads[idx].company = document.getElementById('profile-company-input').value;
-        leads[idx].phone = document.getElementById('profile-phone-input').value;
-        leads[idx].email = document.getElementById('profile-email-input').value;
+        leads[idx].phone = pVal;
+        leads[idx].email = eVal;
         leads[idx].address = document.getElementById('profile-address-input').value;
         leads[idx].notes = document.getElementById('profile-notes-input').value;
         updateProfileSubInfo(leads[idx]);
@@ -260,11 +303,19 @@ function updateProfileSubInfo(lead) {
     if(infoEl) infoEl.innerText = `${companyDisplay}${lead.source} • £${lead.value}`;
 }
 
-// 8. VALIDATION
-function validateEmail(email) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); }
-function validatePhone(phone) { return phone.replace(/[^0-9+]/g, '').length >= 11; }
+// 8. VALIDATION LOGIC
+function validateEmail(email) { 
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); 
+}
+
+function validatePhone(phone) { 
+    const clean = phone.replace(/[^0-9+]/g, '');
+    return clean.length >= 10; 
+}
+
 function validateLive(el, type) { 
-    el.classList.toggle('invalid-input', el.value !== "" && (type === 'phone' ? !validatePhone(el.value) : !validateEmail(el.value))); 
+    const isValid = el.value === "" || (type === 'phone' ? validatePhone(el.value) : validateEmail(el.value));
+    el.classList.toggle('invalid-input', !isValid); 
 }
 
 // Initial Load

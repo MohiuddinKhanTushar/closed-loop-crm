@@ -161,7 +161,7 @@ body {
     font-size: 14px;
 }
 
-/* --- TRASH ICON STYLING --- */
+/* --- TRASH ICON --- */
 .delete-btn-inline {
     background: var(--red-bg);
     border: none;
@@ -173,17 +173,11 @@ body {
     justify-content: center;
     margin-left: 10px;
     cursor: pointer;
-    transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: 0.2s;
 }
 
-.delete-btn-inline svg {
-    stroke: var(--red-delete);
-}
-
-.delete-btn-inline:active {
-    background: #ffdada;
-    transform: scale(0.9);
-}
+.delete-btn-inline svg { stroke: var(--red-delete); }
+.delete-btn-inline:active { transform: scale(0.9); }
 
 /* --- SIDE MENU --- */
 .side-menu {
@@ -205,6 +199,21 @@ body {
     box-shadow: 5px 0 25px rgba(0,0,0,0.15);
 }
 
+/* Fix for the generic link styling */
+.side-menu a {
+    display: block;
+    padding: 16px 0;
+    text-decoration: none; /* Removes underline */
+    color: var(--text-dark); /* Removes purple */
+    font-size: 18px;
+    font-weight: 500;
+    border-bottom: 1px solid var(--gray-light);
+}
+
+.side-menu a:active {
+    color: var(--teal-primary);
+}
+
 .menu-overlay {
     position: fixed;
     top: 0;
@@ -223,50 +232,116 @@ body {
     opacity: 1;
 }
 
-.side-menu a {
-    display: block;
-    padding: 16px 0;
-    text-decoration: none;
-    color: var(--text-dark);
-    font-size: 18px;
-    font-weight: 500;
-    border-bottom: 1px solid var(--gray-light);
-}
-
-/* --- BOTTOM NAV --- */
+/* --- CLEAN BOTTOM NAV (Updated) --- */
 .bottom-nav {
     position: fixed;
     bottom: 0;
     width: 100%;
-    height: 75px;
+    height: 70px;
     background: var(--white);
     display: flex;
     justify-content: space-around;
     align-items: center;
     border-top: 1px solid var(--gray-light);
     z-index: 999;
+    padding-bottom: env(safe-area-inset-bottom); /* iOS support */
 }
 
-.nav-icon.active svg {
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: var(--teal-primary);
+    cursor: pointer;
+    flex: 1;
+    transition: 0.2s;
+}
+
+.nav-item svg {
+    stroke: var(--teal-primary);
+    transition: 0.2s;
+}
+
+.nav-item.active svg, .nav-item:active svg {
     stroke: var(--teal-primary);
 }
 
-.fab {
-    background: var(--teal-primary);
-    color: white;
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 36px;
-    margin-top: -40px;
-    box-shadow: 0 6px 16px rgba(39, 104, 95, 0.35);
-    cursor: pointer;
+.nav-item:active {
+    transform: scale(0.9);
+    opacity: 0.6;
 }
 
-/* --- MODALS & PROFILES --- */
+/* Removal of FAB style */
+.fab { display: none; } 
+
+/* --- PROFILE SCREEN --- */
+.profile-card {
+    background: white;
+    margin: -30px 16px 16px;
+    padding: 24px;
+    border-radius: 20px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+    text-align: center;
+}
+
+.action-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.action-btn {
+    background: #f0f7f6;
+    border: 1px solid #e0eeed;
+    border-radius: 12px;
+    padding: 12px 5px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--teal-primary);
+    cursor: pointer;
+    text-align: center;
+}
+
+.details-list {
+    background: white;
+    margin: 0 16px 16px;
+    padding: 10px 20px;
+    border-radius: 16px;
+}
+
+.detail-item {
+    padding: 12px 0;
+    border-bottom: 1px solid #f0f0f0;
+    text-align: left;
+}
+
+.detail-item:last-child { border: none; }
+
+.detail-item label {
+    display: block;
+    font-size: 11px;
+    text-transform: uppercase;
+    color: #999;
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+.profile-edit-input {
+    width: 100%;
+    border: none;
+    padding: 8px 0;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text-dark);
+    background: transparent;
+    outline: none;
+}
+
+/* --- MODALS --- */
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -287,137 +362,6 @@ body {
     box-sizing: border-box;
 }
 
-/* --- PROFILE SCREEN RESTORATION --- */
-.profile-card {
-    background: white;
-    margin: -30px 16px 16px;
-    padding: 24px;
-    border-radius: 20px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-    text-align: center; /* Centering Name/Info */
-    position: relative;
-    z-index: 5;
-}
-
-/* Action Grid: 4-column layout for Call/WhatsApp/Email/Text */
-.action-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
-    margin-top: 20px;
-}
-
-.action-btn {
-    background: #f0f7f6;
-    border: 1px solid #e0eeed;
-    border-radius: 12px;
-    padding: 12px 5px;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--teal-primary);
-    cursor: pointer;
-    transition: 0.2s;
-    text-align: center;
-}
-
-.action-btn:active {
-    background: var(--teal-primary);
-    color: white;
-}
-
-/* Details List & Alignment */
-.details-list {
-    background: white;
-    margin: 0 16px 16px;
-    padding: 10px 20px;
-    border-radius: 16px;
-}
-
-.detail-item {
-    padding: 12px 0;
-    border-bottom: 1px solid #f0f0f0;
-    text-align: left; /* Restores label alignment */
-}
-
-.detail-item:last-child { border: none; }
-
-.detail-item label {
-    display: block;
-    font-size: 11px;
-    text-transform: uppercase;
-    color: #999;
-    font-weight: bold;
-    margin-bottom: 4px;
-}
-
-/* Cleaner Profile Inputs */
-.profile-edit-input {
-    width: 100%;
-    border: none;
-    padding: 8px 0;
-    font-size: 15px;
-    font-weight: 500;
-    color: var(--text-dark);
-    background: transparent;
-    outline: none;
-    border-bottom: 1px solid transparent;
-    transition: border-bottom 0.3s;
-    font-family: inherit;
-}
-
-.profile-edit-input:focus {
-    border-bottom: 1px solid var(--teal-primary);
-}
-
-/* --- SUMMARY CARD MODAL --- */
-.lead-detail-card {
-    background: white;
-    width: 100%;
-    padding: 30px 25px 40px;
-    border-radius: 30px 30px 0 0;
-    position: relative;
-    box-shadow: 0 -5px 25px rgba(0,0,0,0.1);
-}
-
-/* Modal Grab Handle */
-.lead-detail-card::before {
-    content: "";
-    width: 40px;
-    height: 5px;
-    background: #e0e0e0;
-    border-radius: 10px;
-    position: absolute;
-    top: 12px;
-    left: 50%;
-    transform: translateX(-50%);
-}
-
-.info-group {
-    text-align: left;
-    margin-bottom: 15px;
-}
-
-.info-group label {
-    display: block;
-    font-size: 11px;
-    text-transform: uppercase;
-    color: #999;
-    font-weight: bold;
-}
-
-.info-group input, .info-group select {
-    width: 100%;
-    border: none;
-    border-bottom: 1px solid #f0f0f0;
-    border-radius: 0;
-    padding: 10px 0;
-    margin: 4px 0 10px;
-    font-size: 16px;
-    background: transparent;
-    box-sizing: border-box;
-}
-
-/* General Global Styles */
 input, select, textarea {
     width: 100%;
     padding: 14px;
@@ -436,7 +380,6 @@ input, select, textarea {
     border: none;
     border-radius: 12px;
     font-weight: 700;
-    font-size: 16px;
     cursor: pointer;
 }
 
@@ -445,16 +388,7 @@ input, select, textarea {
     background-color: #fff9f9 !important;
 }
 
-/* --- ACTIVITY TIMELINE --- */
-.activity-section { padding: 0 16px; }
-
-.timeline {
-    background: white;
-    border-radius: 16px;
-    padding: 20px;
-    margin-top: 10px;
-}
-
+/* Activity History */
 .timeline-item {
     position: relative;
     padding-left: 25px;
@@ -462,8 +396,6 @@ input, select, textarea {
     border-left: 2px solid #f0f0f0;
     text-align: left;
 }
-
-.timeline-item:last-child { border: none; }
 
 .timeline-dot {
     position: absolute;
@@ -476,5 +408,12 @@ input, select, textarea {
     border: 3px solid white;
 }
 
-.timeline-item p { margin: 0; font-size: 14px; font-weight: 500; }
-.timeline-item span { font-size: 11px; color: #999; }
+/* Padding for the activity log container */
+.timeline {
+    padding: 10px 0;
+}
+
+/* Ensure the title inside the activity card is aligned */
+.details-list h3 {
+    margin-top: 0;
+}
