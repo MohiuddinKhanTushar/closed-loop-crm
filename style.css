@@ -19,11 +19,18 @@ body {
 }
 
 /* --- HEADER & BRANDING --- */
+/* --- GRADIENT HEADER (Dark to Primary) --- */
 .teal-header {
-    background: var(--teal-primary);
+    /* Top: Dark Teal (#004141) -> Bottom: Primary Teal (#27685f) */
+    background: linear-gradient(
+        180deg, 
+        var(--teal-dark) 0%, 
+        var(--teal-primary) 100%
+    );
     color: var(--white);
-    padding: 10px 20px;
-    min-height: 160px;
+    padding: 10px 20px 25px; 
+    min-height: auto;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1); /* Adds a subtle lift from the background */
 }
 
 .header-top {
@@ -31,8 +38,8 @@ body {
     justify-content: space-between;
     align-items: center;
     position: relative;
-    height: 100px;
-    margin-bottom: 5px;
+    height: 60px;
+    margin-bottom: 0px;
 }
 
 .logo-centered {
@@ -78,7 +85,7 @@ body {
 
 .page-identity {
     text-align: left;
-    padding: 15px 0 10px 0;
+    padding: 5px 0 10px 0;
 }
 
 #current-screen-title {
@@ -87,7 +94,7 @@ body {
     color: rgba(255, 255, 255, 0.85);
     margin: 0;
     letter-spacing: 1px;
-    text-transform: uppercase;
+    text-transform: none;
 }
 
 /* --- TABS --- */
@@ -120,6 +127,7 @@ body {
 /* --- LEAD CARDS --- */
 .content {
     padding-bottom: 100px;
+    padding-top: 10px;
     min-height: calc(100vh - 180px);
 }
 
@@ -190,8 +198,30 @@ body {
     z-index: 2100;
     transform: translateX(-105%); 
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    padding: 25px;
+    padding: 0;
     box-sizing: border-box;
+    overflow: hidden;
+}
+
+.side-menu-brand {
+    background: linear-gradient(
+        135deg, 
+        var(--teal-dark) 0%, 
+        var(--teal-primary) 100%
+    );
+    padding: 10px 25px; 
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.side-menu-logo {
+    height: 90px; /* Adjust based on your logo proportions */
+    width: auto;
+}
+
+.menu-items {
+    padding: 20px 25px; /* Padding for the link section */
 }
 
 .side-menu.open {

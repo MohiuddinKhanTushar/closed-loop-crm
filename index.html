@@ -9,10 +9,15 @@
 <body>
 
     <div id="side-menu" class="side-menu">
-        <div class="menu-header"><h3>Menu</h3></div>
+    <div class="side-menu-brand">
+        <img src="assets/closed-loop-logo8.png" alt="Logo" class="side-menu-logo">
+    </div>
+    
+    <nav class="menu-items">
         <a href="#" onclick="showScreen('pipeline-screen'); toggleMenu();">Pipeline</a>
         <a href="#" onclick="showScreen('roi-screen'); toggleMenu();">ROI Dashboard</a>
-    </div>
+    </nav>
+</div>
 
     <div id="menu-overlay" class="menu-overlay" onclick="toggleMenu()"></div>
 
@@ -20,9 +25,7 @@
         <header class="teal-header">
             <div class="header-top">
                 <button class="menu-btn" onclick="toggleMenu()">☰</button>
-                <div class="logo-centered">
-                    <img src="assets/closed-loop-logo8.png" alt="Logo" class="main-logo">
-                </div>
+                
                 <div class="user-profile-mini">JS</div>
             </div>
             <div class="page-identity">
