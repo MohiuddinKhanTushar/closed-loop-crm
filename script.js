@@ -52,7 +52,7 @@ function openFullProfile() {
     document.getElementById('profile-phone-input').value = lead.phone || "";
     document.getElementById('profile-email-input').value = lead.email || "";
     document.getElementById('profile-address-input').value = lead.address || "";
-    document.getElementById('profile-notes-input').value = lead.notes || "";
+    document.getElementById('profile-notes-input').value = ""; // Clear note box for new entry
 
     renderActivities(lead);
     closeDetail();
@@ -67,6 +67,7 @@ function logActivity(type) {
     
     lead.activities.unshift({
         action: type,
+        isNote: false,
         timestamp: new Date().toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
     });
     
@@ -80,6 +81,34 @@ function logActivity(type) {
     else if(type === 'Text' && phoneNumber) window.location.href = `sms:${phoneNumber}`;
 }
 
+function saveNoteToActivity() {
+    const noteInput = document.getElementById('profile-notes-input');
+    const noteText = noteInput.value.trim();
+
+    if (!noteText) return; 
+
+    const lead = leads.find(l => l.id === activeLeadId);
+    if (lead) {
+        if (!lead.activities) lead.activities = [];
+
+        lead.activities.unshift({
+            action: 'Note',
+            content: noteText,
+            isNote: true,
+            timestamp: new Date().toLocaleString('en-GB', { 
+                day: '2-digit', 
+                month: 'short', 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            })
+        });
+
+        noteInput.value = ''; // Clear box after saving
+        saveData();
+        renderActivities(lead);
+    }
+}
+
 function renderActivities(lead) {
     const log = document.getElementById('activity-log');
     if(!lead.activities || lead.activities.length === 0) {
@@ -89,8 +118,11 @@ function renderActivities(lead) {
     log.innerHTML = lead.activities.map(a => `
         <div class="timeline-item">
             <div class="timeline-dot"></div>
-            <p>${a.action} attempt</p>
-            <span>${a.timestamp}</span>
+            <div style="font-size: 11px; color: #999;">${a.timestamp}</div>
+            <div style="font-weight: 700; color: var(--teal-primary); font-size: 13px; margin-top: 2px;">
+                ${a.isNote ? 'NOTE' : a.action + ' ATTEMPT'}
+            </div>
+            ${a.isNote ? `<div style="font-size: 14px; color: #444; margin-top: 4px; line-height: 1.4;">${a.content}</div>` : ''}
         </div>
     `).join('');
 }
@@ -149,7 +181,6 @@ function openLeadDetail(id) {
         phoneInput.value = lead.phone || '';
         emailInput.value = lead.email || '';
         
-        // Reset validation highlights when opening
         phoneInput.classList.remove('invalid-input');
         emailInput.classList.remove('invalid-input');
         
@@ -198,7 +229,6 @@ function handleBackdropClick(event) {
     if (event.target.id === 'lead-detail-screen') closeDetail();
 }
 
-// Custom Validation Modal Controls
 function openValidationModal(msg) {
     if(msg) document.getElementById('validation-error-msg').innerText = msg;
     document.getElementById('validation-modal').style.display = 'flex';
@@ -221,7 +251,6 @@ if(leadForm) {
         const phone = document.getElementById('lead-phone').value;
         const email = document.getElementById('lead-email').value;
 
-        // Block save if invalid and show custom modal
         if ((phone !== "" && !validatePhone(phone)) || (email !== "" && !validateEmail(email))) {
             openValidationModal("The phone or email format is incorrect. Please check and try again.");
             return;
@@ -253,7 +282,6 @@ function updateLeadContact() {
         const pVal = document.getElementById('detail-phone-input').value;
         const eVal = document.getElementById('detail-email-input').value;
 
-        // Silently block data sync if invalid (handled visually by live validation)
         if ((pVal !== "" && !validatePhone(pVal)) || (eVal !== "" && !validateEmail(eVal))) {
             return; 
         }
@@ -290,7 +318,6 @@ function syncProfileToData() {
         leads[idx].phone = pVal;
         leads[idx].email = eVal;
         leads[idx].address = document.getElementById('profile-address-input').value;
-        leads[idx].notes = document.getElementById('profile-notes-input').value;
         updateProfileSubInfo(leads[idx]);
         saveData();
         renderLeads();
@@ -352,7 +379,7 @@ function handleSearch(query) {
 function goToLeadFromSearch(id) {
     activeLeadId = id;
     toggleSearch(false);
-    openFullProfile(); // This uses your existing function to show the profile
+    openFullProfile();
 }
 
 // Initial Load

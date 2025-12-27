@@ -441,7 +441,7 @@ body {
 /* Ensure the Name and Sub-info sit closely together */
 #profile-main-name {
     font-size: 24px;
-    margin-bottom: 4px;
+    margin-bottom: 10px;
     font-weight: 700;
 }
 
