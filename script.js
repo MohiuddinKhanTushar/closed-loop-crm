@@ -382,5 +382,52 @@ function goToLeadFromSearch(id) {
     openFullProfile();
 }
 
+let currentCalendarDate = new Date();
+
+function openCalendar() {
+    document.getElementById('calendar-modal').style.display = 'flex';
+    renderCalendar();
+}
+
+function closeCalendar() {
+    document.getElementById('calendar-modal').style.display = 'none';
+}
+
+function changeMonth(offset) {
+    currentCalendarDate.setMonth(currentCalendarDate.getMonth() + offset);
+    renderCalendar();
+}
+
+function renderCalendar() {
+    const monthYear = document.getElementById('calendar-month-year');
+    const daysContainer = document.getElementById('calendar-days');
+    
+    const year = currentCalendarDate.getFullYear();
+    const month = currentCalendarDate.getMonth();
+    
+    monthYear.innerText = new Intl.DateTimeFormat('en-GB', { month: 'long', year: 'numeric' }).format(currentCalendarDate);
+    
+    // Get first day of month and total days
+    const firstDay = new Date(year, month, 1).getDay(); // 0 is Sunday
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    
+    daysContainer.innerHTML = '';
+    
+    // Adjust for Monday start (standard in UK)
+    let startingPoint = firstDay === 0 ? 6 : firstDay - 1;
+
+    // Fill empty slots
+    for (let i = 0; i < startingPoint; i++) {
+        daysContainer.innerHTML += `<div></div>`;
+    }
+
+    // Fill actual days
+    const today = new Date();
+    for (let day = 1; day <= daysInMonth; day++) {
+        const isToday = day === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+        daysContainer.innerHTML += `<div class="calendar-day ${isToday ? 'today' : ''}">${day}</div>`;
+    }
+}
+
 // Initial Load
 renderLeads();
