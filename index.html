@@ -16,6 +16,7 @@
     <nav class="menu-items">
         <a href="#" onclick="showScreen('pipeline-screen'); toggleMenu();">Pipeline</a>
         <a href="#" onclick="showScreen('roi-screen'); toggleMenu();">ROI Dashboard</a>
+        <a href="#" onclick="showScreen('settings-screen'); toggleMenu();">Settings</a>
     </nav>
 </div>
 
@@ -24,7 +25,7 @@
     <section id="pipeline-screen" class="screen">
         <header class="teal-header">
             <div class="header-top">
-                <button class="menu-btn" onclick="toggleMenu()">☰</button>
+                <div style="width: 40px;"></div>
                 
                 <div style="display: flex; align-items: center; gap: 15px;">
         <button onclick="toggleSearch(true)" style="background:none; border:none; color:white; cursor:pointer; padding:5px;">
@@ -211,6 +212,32 @@
     <div id="search-results" class="search-results-container">
         </div>
 </div>
+
+<nav class="bottom-nav">
+    <button class="nav-item" onclick="toggleMenu()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.0" stroke-linecap="square">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+        
+    </button>
+
+    <button class="nav-item" onclick="showScreen('pipeline-screen')">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.0" stroke-linecap="square">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+        </svg>
+       
+    </button>
+    
+    <button class="nav-item" onclick="openModal()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.0" stroke-linecap="square">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        
+    </button>
+</nav>
 
     <script src="script.js"></script>
 </body>

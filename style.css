@@ -315,11 +315,15 @@ body {
     height: 70px;
     background: var(--white);
     display: flex;
-    justify-content: space-around;
+    /* This allows us to control the exact start and end of the row */
+    justify-content: space-between; 
     align-items: center;
     border-top: 1px solid var(--gray-light);
     z-index: 999;
-    padding-bottom: env(safe-area-inset-bottom); /* iOS support */
+    /* Adding specific side padding to bring icons closer to the edge */
+    padding: 0 40px; 
+    box-sizing: border-box;
+    padding-bottom: env(safe-area-inset-bottom);
 }
 
 .nav-item {
@@ -331,8 +335,20 @@ body {
     border: none;
     color: var(--teal-primary);
     cursor: pointer;
-    flex: 1;
-    transition: 0.2s;
+    padding: 10px;
+    /* Instead of flex: 1, we use a fixed width or flex-basis to keep them tight */
+    flex: none; 
+    gap: 4px;
+}
+
+.nav-item span {
+    font-size: 10px;
+    font-weight: 600;
+    opacity: 0.8;
+}
+
+.screen {
+    padding-bottom: 80px; 
 }
 
 .nav-item svg {
