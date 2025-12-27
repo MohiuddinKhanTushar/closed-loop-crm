@@ -318,5 +318,42 @@ function validateLive(el, type) {
     el.classList.toggle('invalid-input', !isValid); 
 }
 
+function toggleSearch(show) {
+    const overlay = document.getElementById('search-overlay');
+    overlay.style.display = show ? 'block' : 'none';
+    if (show) {
+        document.getElementById('search-input').focus();
+    } else {
+        document.getElementById('search-input').value = '';
+        document.getElementById('search-results').innerHTML = '';
+    }
+}
+
+function handleSearch(query) {
+    const resultsContainer = document.getElementById('search-results');
+    if (!query) {
+        resultsContainer.innerHTML = '';
+        return;
+    }
+
+    const filtered = leads.filter(lead => 
+        lead.name.toLowerCase().includes(query.toLowerCase()) || 
+        (lead.company && lead.company.toLowerCase().includes(query.toLowerCase()))
+    );
+
+    resultsContainer.innerHTML = filtered.map(lead => `
+        <div class="search-result-item" onclick="goToLeadFromSearch(${lead.id})">
+            <div style="font-weight:600; color:var(--text-dark);">${lead.name}</div>
+            <div style="font-size:12px; color:#666;">${lead.company || 'No Company'} • ${lead.status}</div>
+        </div>
+    `).join('');
+}
+
+function goToLeadFromSearch(id) {
+    activeLeadId = id;
+    toggleSearch(false);
+    openFullProfile(); // This uses your existing function to show the profile
+}
+
 // Initial Load
 renderLeads();
