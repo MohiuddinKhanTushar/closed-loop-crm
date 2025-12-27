@@ -44,15 +44,22 @@
     </section>
 
     <section id="profile-screen" class="screen" style="display: none;">
-        <header class="teal-header" style="min-height: 100px;">
-            <div class="header-top">
-                <button class="menu-btn" onclick="showScreen('pipeline-screen')">←</button>
-                <div class="logo-centered" style="transform: translate(-50%, -50%) scale(1);">
-                    <img src="assets/closed-loop-logo8.png" alt="Logo" class="main-logo" style="height: 40px !important;">
-                </div>
-                <div class="user-profile-mini">JS</div>
-            </div>
-        </header>
+        <header class="teal-header" style="min-height: 100px; display: flex; flex-direction: column; justify-content: space-between;">
+    <div class="header-top" style="display: flex; justify-content: space-between; align-items: center;">
+        <button class="menu-btn" onclick="showScreen('pipeline-screen')" style="display: flex; align-items: center; justify-content: center;">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="square" stroke-linejoin="miter">
+        <path d="M19 12H5M11 18l-6-6 6-6"/>
+    </svg>
+</button>
+        <div class="user-profile-mini">JS</div>
+    </div>
+
+    <div class="page-identity" style="padding-bottom: 10px;">
+        <h2 class="screen-title-tag" style="margin: 0; font-size: 14px; color: rgba(255,255,255,0.85); font-weight: 600; text-transform: none;">
+            Lead Details
+        </h2>
+    </div>
+</header>
         
         <main class="content">
             <div class="profile-card">

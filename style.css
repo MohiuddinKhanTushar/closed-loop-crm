@@ -310,11 +310,12 @@ body {
 /* --- PROFILE SCREEN --- */
 .profile-card {
     background: white;
-    margin: -30px 16px 16px;
-    padding: 24px;
+    margin: -15px 20px 20px;
+    padding: 20px;
     border-radius: 20px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
     text-align: center;
+    z-index: 2;
 }
 
 .action-grid {
@@ -369,6 +370,24 @@ body {
     color: var(--text-dark);
     background: transparent;
     outline: none;
+}
+
+/* Tightens the Profile Header specifically */
+#profile-screen .teal-header {
+    padding: 10px 20px 15px; /* Shorter bottom padding */
+}
+
+/* Ensure the Name and Sub-info sit closely together */
+#profile-main-name {
+    font-size: 24px;
+    margin-bottom: 4px;
+    font-weight: 700;
+}
+
+#profile-sub-info {
+    font-size: 14px;
+    opacity: 0.9;
+    margin-bottom: 5px;
 }
 
 /* --- MODALS --- */
