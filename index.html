@@ -203,6 +203,14 @@
     </button>
 </div>
 
+<div id="search-overlay" class="search-overlay" style="display:none;">
+    <div class="search-header">
+        <input type="text" id="search-input" placeholder="Search leads by name..." oninput="handleSearch(this.value)">
+        <button onclick="toggleSearch(false)" class="close-search">Cancel</button>
+    </div>
+    <div id="search-results" class="search-results-container">
+        </div>
+</div>
 
     <script src="script.js"></script>
 </body>
