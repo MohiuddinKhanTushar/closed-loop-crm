@@ -115,16 +115,21 @@ function renderActivities(lead) {
         log.innerHTML = '<p style="color:#888; text-align:center; padding:20px;">No history yet.</p>';
         return;
     }
-    log.innerHTML = lead.activities.map(a => `
-        <div class="timeline-item">
-            <div class="timeline-dot"></div>
-            <div style="font-size: 11px; color: #999;">${a.timestamp}</div>
-            <div style="font-weight: 700; color: var(--teal-primary); font-size: 13px; margin-top: 2px;">
-                ${a.isNote ? 'NOTE' : a.action + ' ATTEMPT'}
+    log.innerHTML = lead.activities.map(a => {
+        const isTask = a.type === 'Task';
+        return `
+            <div class="timeline-item">
+                <div class="timeline-dot" style="${isTask ? 'background: #ff9500;' : ''}"></div>
+                <div style="font-size: 11px; color: #999;">${a.timestamp}</div>
+                <div style="font-weight: 700; color: var(--teal-primary); font-size: 13px; margin-top: 2px;">
+                    ${isTask ? 'TASK SCHEDULED' : (a.isNote ? 'NOTE' : a.action + ' ATTEMPT')}
+                </div>
+                <div style="font-size: 14px; color: #444; margin-top: 4px; line-height: 1.4;">
+                    ${isTask ? `<strong>${a.date} @ ${a.time}</strong><br>${a.description}` : (a.isNote ? a.content : '')}
+                </div>
             </div>
-            ${a.isNote ? `<div style="font-size: 14px; color: #444; margin-top: 4px; line-height: 1.4;">${a.content}</div>` : ''}
-        </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 // 4. PIPELINE & LEAD RENDERING
@@ -398,34 +403,97 @@ function changeMonth(offset) {
     renderCalendar();
 }
 
+// Save Task Function
+function saveTask() {
+    const desc = document.getElementById('task-desc').value;
+    const date = document.getElementById('task-date').value;
+    const time = document.getElementById('task-time').value;
+
+    if (!desc || !date) {
+        alert("Please provide a description and date.");
+        return;
+    }
+
+    const lead = leads.find(l => l.id === activeLeadId);
+    if (!lead) return;
+
+    const taskEntry = {
+        id: Date.now(),
+        leadId: activeLeadId, 
+        leadName: lead.name,
+        type: 'Task',
+        description: desc,
+        date: date,
+        time: time,
+        timestamp: new Date().toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+    };
+
+    if (!lead.activities) lead.activities = [];
+    lead.activities.unshift(taskEntry);
+
+    // Clear inputs
+    document.getElementById('task-desc').value = '';
+    document.getElementById('task-date').value = '';
+    document.getElementById('task-time').value = '';
+    
+    saveData();
+    renderActivities(lead);
+    alert("Task scheduled!");
+}
+
+// Update RenderCalendar to show tasks
 function renderCalendar() {
     const monthYear = document.getElementById('calendar-month-year');
     const daysContainer = document.getElementById('calendar-days');
-    
     const year = currentCalendarDate.getFullYear();
     const month = currentCalendarDate.getMonth();
     
     monthYear.innerText = new Intl.DateTimeFormat('en-GB', { month: 'long', year: 'numeric' }).format(currentCalendarDate);
-    
-    // Get first day of month and total days
-    const firstDay = new Date(year, month, 1).getDay(); // 0 is Sunday
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    
     daysContainer.innerHTML = '';
     
-    // Adjust for Monday start (standard in UK)
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
     let startingPoint = firstDay === 0 ? 6 : firstDay - 1;
 
-    // Fill empty slots
-    for (let i = 0; i < startingPoint; i++) {
-        daysContainer.innerHTML += `<div></div>`;
-    }
+    for (let i = 0; i < startingPoint; i++) { daysContainer.innerHTML += `<div></div>`; }
 
-    // Fill actual days
-    const today = new Date();
+    const allTasks = leads.flatMap(l => (l.activities || []).filter(a => a.type === 'Task'));
+
     for (let day = 1; day <= daysInMonth; day++) {
-        const isToday = day === today.getDate() && month === today.getMonth() && year === today.getFullYear();
-        daysContainer.innerHTML += `<div class="calendar-day ${isToday ? 'today' : ''}">${day}</div>`;
+        const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const dayTasks = allTasks.filter(t => t.date === dateString);
+        const isToday = day === new Date().getDate() && month === new Date().getMonth() && year === new Date().getFullYear();
+        
+        const hasTaskClass = dayTasks.length > 0 ? 'has-task' : '';
+        
+        daysContainer.innerHTML += `
+            <div class="calendar-day ${isToday ? 'today' : ''} ${hasTaskClass}" onclick="handleDateClick('${dateString}')">
+                ${day}
+                ${dayTasks.length > 0 ? '<span class="task-dot"></span>' : ''}
+            </div>`;
+    }
+}
+
+// Open lead details from calendar
+function handleDateClick(dateString) {
+    const allTasks = leads.flatMap(l => (l.activities || []).filter(a => a.type === 'Task'));
+    const tasksForDay = allTasks.filter(t => t.date === dateString);
+
+    if (tasksForDay.length > 0) {
+        const task = tasksForDay[0];
+        activeLeadId = task.leadId;
+        closeCalendar();
+        
+        // Populate and show the lead profile
+        const lead = leads.find(l => l.id === activeLeadId);
+        document.getElementById('profile-main-name').innerText = lead.name;
+        updateProfileSubInfo(lead);
+        document.getElementById('profile-company-input').value = lead.company || "";
+        document.getElementById('profile-phone-input').value = lead.phone || "";
+        document.getElementById('profile-email-input').value = lead.email || "";
+        document.getElementById('profile-address-input').value = lead.address || "";
+        renderActivities(lead);
+        showScreen('profile-screen');
     }
 }
 

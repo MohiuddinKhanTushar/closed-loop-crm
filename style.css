@@ -566,11 +566,15 @@ input, select, textarea {
 }
 
 .calendar-day {
-    padding: 10px 0;
-    font-size: 14px;
+    position: relative;
+    height: 45px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
     border-radius: 8px;
-    transition: 0.2s;
+    font-size: 14px;
+    transition: background 0.2s;
 }
 
 .calendar-day:hover { background: var(--bg-light); }
@@ -578,4 +582,34 @@ input, select, textarea {
     background: var(--teal-primary); 
     color: white; 
     font-weight: bold; 
+}
+
+.calendar-day.has-task {
+    background: transparent; 
+    color: var(--text-dark); /* Keep the number readable */
+    font-weight: 600;
+}
+
+.task-dot {
+    position: absolute;
+    bottom: 6px;       /* Places it near the bottom of the cell */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 6px;
+    height: 6px;
+    background-color: var(--teal-primary); /* Use your theme teal */
+    border-radius: 50%; /* Makes it a circle */
+}
+
+.calendar-day.today {
+    background-color: #f0f7f7;
+    border: 1px solid var(--teal-primary);
+}
+
+#calendar-days .calendar-day {
+    position: relative;
+    height: 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }

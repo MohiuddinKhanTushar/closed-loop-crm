@@ -111,6 +111,19 @@
             </div>
 
             <div class="profile-card" style="margin-top: 20px; text-align: left;">
+    <h3 style="font-size: 14px; margin: 0 0 12px 0; color: var(--teal-primary); text-transform: uppercase; letter-spacing: 1px;">Schedule Task</h3>
+    
+    <input type="text" id="task-desc" placeholder="What needs to be done?" style="margin-bottom: 10px;">
+    
+    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+        <input type="date" id="task-date" style="margin: 0; flex: 1;">
+        <input type="time" id="task-time" style="margin: 0; flex: 1;">
+    </div>
+    
+    <button onclick="saveTask()" class="save-btn" style="padding: 12px;">Set Task</button>
+</div>
+
+            <div class="profile-card" style="margin-top: 20px; text-align: left;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
         <h3 style="font-size: 14px; margin: 0; color: var(--teal-primary); text-transform: uppercase; letter-spacing: 1px;">Add Note</h3>
         
