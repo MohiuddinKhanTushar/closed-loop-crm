@@ -15,6 +15,7 @@
     
     <nav class="menu-items">
         <a href="#" onclick="showScreen('pipeline-screen'); toggleMenu();">Pipeline</a>
+        <a href="#" onclick="showScreen('tasks-screen'); toggleMenu();">All Tasks</a>
         <a href="#" onclick="showScreen('roi-screen'); toggleMenu();">ROI Dashboard</a>
         <a href="#" onclick="showScreen('settings-screen'); toggleMenu();">Settings</a>
     </nav>
@@ -145,6 +146,29 @@
         </main>
     </section>
 
+    <section id="tasks-screen" class="screen" style="display: none;">
+    <header class="teal-header" style="min-height: 100px;">
+        <div class="header-top" style="display: flex; justify-content: space-between; align-items: center;">
+            <button class="menu-btn" onclick="showScreen('pipeline-screen')" style="display: flex; align-items: center; justify-content: center;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="square">
+                    <path d="M19 12H5M11 18l-6-6 6-6"/>
+                </svg>
+            </button>
+            <div class="user-profile-mini">JS</div>
+        </div>
+        <div class="page-identity" style="padding-bottom: 10px;">
+            <h2 class="screen-title-tag" style="margin: 0; font-size: 14px; color: rgba(255,255,255,0.85); font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">
+                All Tasks
+            </h2>
+        </div>
+    </header>
+
+    <main class="content">
+        <div id="all-tasks-container">
+            </div>
+    </main>
+</section>
+
     <div id="lead-detail-screen" class="modal-overlay" onclick="handleBackdropClick(event)" style="display: none;">
         <div class="lead-detail-card" onclick="event.stopPropagation()">
             <div style="width: 40px; height: 5px; background: #e0e0e0; border-radius: 10px; margin: -15px auto 20px;"></div>
@@ -222,6 +246,7 @@
     </div>
 </div>
 
+
     <div class="bottom-nav">
     <button class="nav-item" onclick="showScreen('pipeline-screen')">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
@@ -283,6 +308,22 @@
         </div>
         <div id="calendar-days" class="calendar-days"></div>
         <button class="save-btn" style="margin-top: 15px;" onclick="closeCalendar()">Close</button>
+    </div>
+</div>
+
+<div id="toast-notification" class="toast" style="display:none;">
+    <div class="toast-content">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        <span id="toast-message">Task Scheduled!</span>
+    </div>
+</div>
+
+
+<div id="calendar-task-modal" class="modal-overlay" style="display:none; align-items: center; justify-content: center; z-index: 9999;" onclick="closeCalendarTaskModal(event)">
+    <div class="modal-content" style="width: 85%; border-radius: 20px;">
+        <h3 id="calendar-modal-date">Tasks</h3>
+        <div id="calendar-task-list"></div>
+        <button class="save-btn" onclick="document.getElementById('calendar-task-modal').style.display='none'">Close</button>
     </div>
 </div>
 

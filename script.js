@@ -30,13 +30,13 @@ function showScreen(screenId) {
     const target = document.getElementById(screenId);
     if(target) target.style.display = 'block';
     if(screenId === 'pipeline-screen') renderLeads();
+    if(screenId === 'tasks-screen') renderAllTasks();
 }
 
 function openFullProfile() {
     const lead = leads.find(l => l.id === activeLeadId);
     if (!lead) return;
 
-    // Validation check before moving to profile
     const pVal = document.getElementById('detail-phone-input').value;
     const eVal = document.getElementById('detail-email-input').value;
     
@@ -52,7 +52,7 @@ function openFullProfile() {
     document.getElementById('profile-phone-input').value = lead.phone || "";
     document.getElementById('profile-email-input').value = lead.email || "";
     document.getElementById('profile-address-input').value = lead.address || "";
-    document.getElementById('profile-notes-input').value = ""; // Clear note box for new entry
+    document.getElementById('profile-notes-input').value = ""; 
 
     renderActivities(lead);
     closeDetail();
@@ -60,12 +60,27 @@ function openFullProfile() {
 }
 
 // 3. ACTIVITIES LOGIC
+function toggleTaskComplete(leadId, taskId) {
+    const lead = leads.find(l => l.id === leadId);
+    if (!lead) return;
+
+    const task = lead.activities.find(a => a.id === taskId);
+    if (task) {
+        task.completed = !task.completed;
+        saveData();
+        renderActivities(lead);
+        if (document.getElementById('tasks-screen').style.display === 'block') renderAllTasks();
+        showToast(task.completed ? "Task Completed!" : "Task Re-opened");
+    }
+}
+
 function logActivity(type) {
     const lead = leads.find(l => l.id === activeLeadId);
     if(!lead) return;
     if(!lead.activities) lead.activities = [];
     
     lead.activities.unshift({
+        id: Date.now(),
         action: type,
         isNote: false,
         timestamp: new Date().toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
@@ -92,6 +107,7 @@ function saveNoteToActivity() {
         if (!lead.activities) lead.activities = [];
 
         lead.activities.unshift({
+            id: Date.now(),
             action: 'Note',
             content: noteText,
             isNote: true,
@@ -103,7 +119,7 @@ function saveNoteToActivity() {
             })
         });
 
-        noteInput.value = ''; // Clear box after saving
+        noteInput.value = '';
         saveData();
         renderActivities(lead);
     }
@@ -117,14 +133,27 @@ function renderActivities(lead) {
     }
     log.innerHTML = lead.activities.map(a => {
         const isTask = a.type === 'Task';
+        const isCompleted = a.completed ? 'opacity: 0.6;' : '';
+        const taskColor = a.completed ? '#4caf50' : '#ff9500';
+
         return `
-            <div class="timeline-item">
-                <div class="timeline-dot" style="${isTask ? 'background: #ff9500;' : ''}"></div>
-                <div style="font-size: 11px; color: #999;">${a.timestamp}</div>
-                <div style="font-weight: 700; color: var(--teal-primary); font-size: 13px; margin-top: 2px;">
-                    ${isTask ? 'TASK SCHEDULED' : (a.isNote ? 'NOTE' : a.action + ' ATTEMPT')}
+            <div class="timeline-item" style="${isCompleted}">
+                <div class="timeline-dot" style="${isTask ? `background: ${taskColor};` : ''}"></div>
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div style="font-size: 11px; color: #999;">${a.timestamp}</div>
+                    ${isTask ? `
+                        <button onclick="event.stopPropagation(); toggleTaskComplete(${lead.id}, ${a.id})" 
+                                style="background:none; border:none; padding:0; cursor:pointer; color: ${a.completed ? '#4caf50' : '#ccc'};">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                        </button>
+                    ` : ''}
                 </div>
-                <div style="font-size: 14px; color: #444; margin-top: 4px; line-height: 1.4;">
+                <div style="font-weight: 700; color: var(--teal-primary); font-size: 13px; margin-top: 2px; ${a.completed ? 'text-decoration: line-through;' : ''}">
+                    ${isTask ? (a.completed ? 'TASK COMPLETED' : 'TASK SCHEDULED') : (a.isNote ? 'NOTE' : a.action + ' ATTEMPT')}
+                </div>
+                <div style="font-size: 14px; color: #444; margin-top: 4px; line-height: 1.4; ${a.completed ? 'text-decoration: line-through;' : ''}">
                     ${isTask ? `<strong>${a.date} @ ${a.time}</strong><br>${a.description}` : (a.isNote ? a.content : '')}
                 </div>
             </div>
@@ -252,7 +281,6 @@ const leadForm = document.getElementById('lead-form');
 if(leadForm) {
     leadForm.addEventListener('submit', function(e) {
         e.preventDefault();
-        
         const phone = document.getElementById('lead-phone').value;
         const email = document.getElementById('lead-email').value;
 
@@ -287,9 +315,7 @@ function updateLeadContact() {
         const pVal = document.getElementById('detail-phone-input').value;
         const eVal = document.getElementById('detail-email-input').value;
 
-        if ((pVal !== "" && !validatePhone(pVal)) || (eVal !== "" && !validateEmail(eVal))) {
-            return; 
-        }
+        if ((pVal !== "" && !validatePhone(pVal)) || (eVal !== "" && !validateEmail(eVal))) return; 
 
         leads[idx].company = document.getElementById('detail-company-input').value;
         leads[idx].phone = pVal;
@@ -315,9 +341,7 @@ function syncProfileToData() {
         const pVal = document.getElementById('profile-phone-input').value;
         const eVal = document.getElementById('profile-email-input').value;
 
-        if ((pVal !== "" && !validatePhone(pVal)) || (eVal !== "" && !validateEmail(eVal))) {
-            return;
-        }
+        if ((pVal !== "" && !validatePhone(pVal)) || (eVal !== "" && !validateEmail(eVal))) return;
 
         leads[idx].company = document.getElementById('profile-company-input').value;
         leads[idx].phone = pVal;
@@ -403,45 +427,59 @@ function changeMonth(offset) {
     renderCalendar();
 }
 
-// Save Task Function
-function saveTask() {
-    const desc = document.getElementById('task-desc').value;
-    const date = document.getElementById('task-date').value;
-    const time = document.getElementById('task-time').value;
+// Uniform Notification Function
+function showToast(message) {
+    const toast = document.getElementById('toast-notification');
+    const msgEl = document.getElementById('toast-message');
+    if(!toast || !msgEl) return;
+    msgEl.innerText = message;
+    toast.style.display = 'block';
+    setTimeout(() => { toast.style.display = 'none'; }, 3000);
+}
 
-    if (!desc || !date) {
-        alert("Please provide a description and date.");
+// Fixed Save Task for Mobile & Browser
+function saveTask() {
+    const descInput = document.getElementById('task-desc');
+    const dateInput = document.getElementById('task-date');
+    const timeInput = document.getElementById('task-time');
+
+    if (!descInput.value || !dateInput.value) {
+        openValidationModal("Please provide a description and date.");
         return;
     }
 
     const lead = leads.find(l => l.id === activeLeadId);
     if (!lead) return;
 
+    const now = new Date();
+    const timestampStr = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + 
+                         ', ' + now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+
     const taskEntry = {
         id: Date.now(),
         leadId: activeLeadId, 
         leadName: lead.name,
         type: 'Task',
-        description: desc,
-        date: date,
-        time: time,
-        timestamp: new Date().toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+        description: descInput.value,
+        date: dateInput.value,
+        time: timeInput.value || "00:00",
+        timestamp: timestampStr,
+        completed: false
     };
 
     if (!lead.activities) lead.activities = [];
     lead.activities.unshift(taskEntry);
 
-    // Clear inputs
-    document.getElementById('task-desc').value = '';
-    document.getElementById('task-date').value = '';
-    document.getElementById('task-time').value = '';
-    
     saveData();
     renderActivities(lead);
-    alert("Task scheduled!");
+    
+    descInput.value = '';
+    dateInput.value = '';
+    timeInput.value = '';
+    
+    showToast("Task Scheduled!");
 }
 
-// Update RenderCalendar to show tasks
 function renderCalendar() {
     const monthYear = document.getElementById('calendar-month-year');
     const daysContainer = document.getElementById('calendar-days');
@@ -457,6 +495,7 @@ function renderCalendar() {
 
     for (let i = 0; i < startingPoint; i++) { daysContainer.innerHTML += `<div></div>`; }
 
+    // dots based on ALL tasks
     const allTasks = leads.flatMap(l => (l.activities || []).filter(a => a.type === 'Task'));
 
     for (let day = 1; day <= daysInMonth; day++) {
@@ -466,35 +505,136 @@ function renderCalendar() {
         
         const hasTaskClass = dayTasks.length > 0 ? 'has-task' : '';
         
+        // Show count if more than 1 task, otherwise show standard dot
+        let indicator = '';
+        if (dayTasks.length > 1) {
+            indicator = `<span class="task-count-badge" style="position:absolute; bottom:2px; right:2px; background:var(--teal-primary); color:white; font-size:9px; width:14px; height:14px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700;">${dayTasks.length}</span>`;
+        } else if (dayTasks.length === 1) {
+            indicator = `<span class="task-dot" style="background:${dayTasks[0].completed ? '#4caf50' : '#ff9500'}"></span>`;
+        }
+
         daysContainer.innerHTML += `
-            <div class="calendar-day ${isToday ? 'today' : ''} ${hasTaskClass}" onclick="handleDateClick('${dateString}')">
+            <div class="calendar-day ${isToday ? 'today' : ''} ${hasTaskClass}" onclick="handleDateClick('${dateString}')" style="position:relative;">
                 ${day}
-                ${dayTasks.length > 0 ? '<span class="task-dot"></span>' : ''}
+                ${indicator}
             </div>`;
     }
 }
 
-// Open lead details from calendar
 function handleDateClick(dateString) {
-    const allTasks = leads.flatMap(l => (l.activities || []).filter(a => a.type === 'Task'));
-    const tasksForDay = allTasks.filter(t => t.date === dateString);
+    const allTasks = leads.flatMap(l => (l.activities || []).map(a => ({...a, leadName: l.name})));
+    const tasksForDay = allTasks.filter(t => t.type === 'Task' && t.date === dateString);
 
-    if (tasksForDay.length > 0) {
-        const task = tasksForDay[0];
-        activeLeadId = task.leadId;
+    if (tasksForDay.length === 0) return;
+
+    // Only one task: Jump directly to profile
+    if (tasksForDay.length === 1) {
+        activeLeadId = tasksForDay[0].leadId;
         closeCalendar();
-        
-        // Populate and show the lead profile
-        const lead = leads.find(l => l.id === activeLeadId);
-        document.getElementById('profile-main-name').innerText = lead.name;
-        updateProfileSubInfo(lead);
-        document.getElementById('profile-company-input').value = lead.company || "";
-        document.getElementById('profile-phone-input').value = lead.phone || "";
-        document.getElementById('profile-email-input').value = lead.email || "";
-        document.getElementById('profile-address-input').value = lead.address || "";
-        renderActivities(lead);
-        showScreen('profile-screen');
+        openFullProfile();
+        return;
+    const taskModal = document.getElementById('calendar-task-modal');
+    taskModal.style.display = 'flex'; // This centers it because of the 'align-items: center' style
+}
+
+    // Multiple tasks: Show the picker modal
+    const modal = document.getElementById('calendar-task-modal');
+    const listContainer = document.getElementById('calendar-task-list');
+    const dateHeader = document.getElementById('calendar-modal-date');
+
+    if (!modal || !listContainer) return;
+
+    dateHeader.innerText = `Tasks for ${new Date(dateString).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
+    
+    listContainer.innerHTML = tasksForDay.map(task => `
+        <div class="search-result-item" onclick="goToLeadFromCalendarPicker(${task.leadId})" style="border-bottom:1px solid #eee; padding:12px 10px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-weight:700; color:var(--text-dark);">${task.description}</span>
+                <span style="font-size:11px; color:#ff9500; font-weight:700;">${task.time}</span>
+            </div>
+            <div style="font-size:12px; color:#666; margin-top:2px;">Lead: ${task.leadName} ${task.completed ? '✅' : ''}</div>
+        </div>
+    `).join('');
+
+    modal.style.display = 'flex';
+}
+
+function goToLeadFromCalendarPicker(leadId) {
+    activeLeadId = leadId;
+    document.getElementById('calendar-task-modal').style.display = 'none';
+    closeCalendar();
+    openFullProfile();
+}
+
+function closeCalendarTaskModal(event) {
+    if (event.target.id === 'calendar-task-modal') {
+        document.getElementById('calendar-task-modal').style.display = 'none';
     }
+}
+
+function renderAllTasks() {
+    const container = document.getElementById('all-tasks-container');
+    if (!container) return;
+    container.innerHTML = '';
+
+    let allTasks = [];
+    leads.forEach(lead => {
+        if (lead.activities) {
+            lead.activities.forEach(act => {
+                if (act.type === 'Task') {
+                    allTasks.push({ ...act, belongsTo: lead.name, belongsToId: lead.id });
+                }
+            });
+        }
+    });
+
+    allTasks.sort((a, b) => {
+        const dateTimeA = new Date(`${a.date} ${a.time || '00:00'}`);
+        const dateTimeB = new Date(`${b.date} ${b.time || '00:00'}`);
+        return dateTimeB - dateTimeA;
+    });
+
+    if (allTasks.length === 0) {
+        container.innerHTML = '<p style="color:#888; text-align:center; padding:40px;">No scheduled tasks found.</p>';
+        return;
+    }
+
+    allTasks.forEach(task => {
+        const card = document.createElement('div');
+        card.className = 'lead-card';
+        card.style.marginBottom = '12px';
+        card.style.display = 'flex';
+        card.style.alignItems = 'center';
+        card.style.justifyContent = 'space-between';
+        card.style.borderLeft = `4px solid ${task.completed ? '#4caf50' : '#ff9500'}`;
+        if(task.completed) card.style.opacity = '0.7';
+        
+        card.onclick = () => {
+            activeLeadId = task.belongsToId;
+            openFullProfile();
+        };
+
+        card.innerHTML = `
+            <div class="card-info" style="flex-grow:1; ${task.completed ? 'text-decoration: line-through;' : ''}">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 4px;">
+                    <h3 style="margin:0; font-size: 15px;">${task.description}</h3>
+                    <span style="font-size:10px; background:${task.completed ? '#e8f5e9' : '#fff3e0'}; color:${task.completed ? '#4caf50' : '#ff9500'}; padding:2px 6px; border-radius:4px; font-weight:700; white-space:nowrap; margin-left: 10px;">
+                        ${task.date}
+                    </span>
+                </div>
+                <p style="margin: 0; font-size:12px; color:#666;">
+                    Lead: <strong>${task.belongsTo}</strong> • Time: ${task.time || 'N/A'}
+                </p>
+            </div>
+            <button onclick="event.stopPropagation(); toggleTaskComplete(${task.belongsToId}, ${task.id})" 
+                    style="background:none; border:none; padding:10px; cursor:pointer; color: ${task.completed ? '#4caf50' : '#ccc'};">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+            </button>
+        `;
+        container.appendChild(card);
+    });
 }
 
 // Initial Load

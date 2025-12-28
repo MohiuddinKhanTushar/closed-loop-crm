@@ -613,3 +613,41 @@ input, select, textarea {
     flex-direction: column;
     justify-content: center;
 }
+
+.toast {
+    position: fixed;
+    bottom: 100px; /* Sits above the bottom nav */
+    left: 50%;
+    transform: translateX(-50%);
+    background: #333;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 50px;
+    z-index: 10000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    animation: slideUp 0.3s ease-out;
+}
+
+.toast-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+@keyframes slideUp {
+    from { transform: translate(-50%, 20px); opacity: 0; }
+    to { transform: translate(-50%, 0); opacity: 1; }
+}
+
+/* Ensure the Task Picker is above the Calendar */
+#calendar-task-modal {
+    z-index: 3000 !important; /* Higher than calendar (usually 1000 or 2000) */
+}
+
+/* Optional: Improve the look of the badge we added to the JS */
+.task-count-badge {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    border: 1px solid white;
+}
