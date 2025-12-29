@@ -1,6 +1,7 @@
 // 1. DATA SETUP & STATE
 let currentFilter = 'New';
 let activeLeadId = null;
+let notifications = JSON.parse(localStorage.getItem('notifications')) || [];
 
 let rawData = localStorage.getItem('myLeads');
 let leads = rawData ? JSON.parse(rawData) : [
@@ -437,11 +438,104 @@ function showToast(message) {
     setTimeout(() => { toast.style.display = 'none'; }, 3000);
 }
 
-// Fixed Save Task for Mobile & Browser
+// --- NOTIFICATIONS & REMINDERS ---
+
+function toggleNotifications() {
+    const modal = document.getElementById('notif-modal');
+    if(modal.style.display === 'none' || !modal.style.display) {
+        modal.style.display = 'flex';
+        renderNotificationList();
+        // Mark all as read when opening
+        notifications.forEach(n => n.read = true);
+        localStorage.setItem('notifications', JSON.stringify(notifications));
+        updateNotifUI();
+    } else {
+        modal.style.display = 'none';
+    }
+}
+
+function renderNotificationList() {
+    const container = document.getElementById('notif-list-container');
+    if(!container) return;
+    
+    if(notifications.length === 0) {
+        container.innerHTML = '<p style="text-align:center; color:#888; padding:20px;">No notifications yet.</p>';
+        return;
+    }
+
+    // Header with Clear All button
+    let html = `
+        <div style="padding: 10px 12px; border-bottom: 2px solid #eee; display: flex; justify-content: space-between; align-items: center; background: #fafafa;">
+            <span style="font-size: 12px; font-weight: 700; color: #666;">NOTIFICATIONS</span>
+            <button onclick="clearAllNotifications()" style="background: none; border: none; color: var(--teal-primary); font-size: 11px; font-weight: 700; cursor: pointer; padding: 4px 8px;">Clear All</button>
+        </div>
+    `;
+
+    // Map through notifications
+    html += notifications.map((n, index) => `
+        <div style="padding:12px; border-bottom:1px solid #eee; background:${n.read ? 'white' : '#f0f9f9'}; cursor:pointer; position: relative;"
+             class="notif-item"
+             onclick="goToLeadFromNotification(${n.leadId})">
+            <div style="display:flex; justify-content:space-between; padding-right: 20px;">
+                <strong style="font-size:13px; color:var(--teal-primary);">${n.leadName}</strong>
+                <span style="font-size:10px; color:#999;">${n.time}</span>
+            </div>
+            <div style="font-size:13px; color:#444; margin-top:4px; padding-right: 20px;">Reminder: ${n.taskDesc}</div>
+            
+            <button onclick="event.stopPropagation(); deleteNotification(${index})" 
+                    style="position: absolute; top: 10px; right: 8px; background: none; border: none; color: #ccc; font-size: 16px; cursor: pointer; line-height: 1;">
+                &times;
+            </button>
+        </div>
+    `).join('');
+
+    container.innerHTML = html;
+}
+
+function goToLeadFromNotification(leadId) {
+    activeLeadId = leadId;
+    const modal = document.getElementById('notif-modal');
+    if (modal) modal.style.display = 'none';
+    openFullProfile();
+}
+
+function updateNotifUI() {
+    const badge = document.getElementById('notif-badge');
+    const unreadCount = notifications.filter(n => !n.read).length;
+    
+    if(unreadCount > 0) {
+        badge.innerText = unreadCount;
+        badge.style.display = 'block';
+    } else {
+        badge.style.display = 'none';
+    }
+}
+
+function clearAllNotifications() {
+    if (confirm("Are you sure you want to clear all notifications?")) {
+        notifications = [];
+        localStorage.setItem('notifications', JSON.stringify(notifications));
+        renderNotificationList();
+        updateNotifUI();
+    }
+}
+
+function deleteNotification(index) {
+    // Remove the specific notification from the array
+    notifications.splice(index, 1);
+    localStorage.setItem('notifications', JSON.stringify(notifications));
+    
+    // Refresh the UI
+    renderNotificationList();
+    updateNotifUI();
+}
+
+// 9. REVISED SAVE TASK (With Reminder Support)
 function saveTask() {
     const descInput = document.getElementById('task-desc');
     const dateInput = document.getElementById('task-date');
     const timeInput = document.getElementById('task-time');
+    const reminderOffset = document.getElementById('task-reminder-offset').value;
 
     if (!descInput.value || !dateInput.value) {
         openValidationModal("Please provide a description and date.");
@@ -450,6 +544,9 @@ function saveTask() {
 
     const lead = leads.find(l => l.id === activeLeadId);
     if (!lead) return;
+
+    // Calculate actual task timestamp for the reminder logic
+    const taskDateTime = new Date(`${dateInput.value}T${timeInput.value || '00:00'}`).getTime();
 
     const now = new Date();
     const timestampStr = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + 
@@ -463,8 +560,11 @@ function saveTask() {
         description: descInput.value,
         date: dateInput.value,
         time: timeInput.value || "00:00",
+        taskTimestamp: taskDateTime, 
+        reminderOffset: reminderOffset,
         timestamp: timestampStr,
-        completed: false
+        completed: false,
+        notified: false
     };
 
     if (!lead.activities) lead.activities = [];
@@ -476,6 +576,7 @@ function saveTask() {
     descInput.value = '';
     dateInput.value = '';
     timeInput.value = '';
+    document.getElementById('task-reminder-offset').value = 'none';
     
     showToast("Task Scheduled!");
 }
@@ -495,7 +596,6 @@ function renderCalendar() {
 
     for (let i = 0; i < startingPoint; i++) { daysContainer.innerHTML += `<div></div>`; }
 
-    // dots based on ALL tasks
     const allTasks = leads.flatMap(l => (l.activities || []).filter(a => a.type === 'Task'));
 
     for (let day = 1; day <= daysInMonth; day++) {
@@ -505,7 +605,6 @@ function renderCalendar() {
         
         const hasTaskClass = dayTasks.length > 0 ? 'has-task' : '';
         
-        // Show count if more than 1 task, otherwise show standard dot
         let indicator = '';
         if (dayTasks.length > 1) {
             indicator = `<span class="task-count-badge" style="position:absolute; bottom:2px; right:2px; background:var(--teal-primary); color:white; font-size:9px; width:14px; height:14px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700;">${dayTasks.length}</span>`;
@@ -527,17 +626,13 @@ function handleDateClick(dateString) {
 
     if (tasksForDay.length === 0) return;
 
-    // Only one task: Jump directly to profile
     if (tasksForDay.length === 1) {
         activeLeadId = tasksForDay[0].leadId;
         closeCalendar();
         openFullProfile();
         return;
-    const taskModal = document.getElementById('calendar-task-modal');
-    taskModal.style.display = 'flex'; // This centers it because of the 'align-items: center' style
-}
+    }
 
-    // Multiple tasks: Show the picker modal
     const modal = document.getElementById('calendar-task-modal');
     const listContainer = document.getElementById('calendar-task-list');
     const dateHeader = document.getElementById('calendar-modal-date');
@@ -637,5 +732,42 @@ function renderAllTasks() {
     });
 }
 
+// Check for reminders every 30 seconds
+setInterval(() => {
+    const now = Date.now();
+    let needsUpdate = false;
+
+    leads.forEach(lead => {
+        if (!lead.activities) return;
+        
+        lead.activities.forEach(task => {
+            if (task.type === 'Task' && task.reminderOffset !== 'none' && !task.notified && !task.completed) {
+                const reminderTime = task.taskTimestamp - (parseInt(task.reminderOffset) * 60000);
+                
+                if (now >= reminderTime) {
+                    const newNotif = {
+                        id: Date.now() + Math.random(),
+                        taskDesc: task.description,
+                        leadId: lead.id,
+                        leadName: lead.name,
+                        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                        read: false
+                    };
+                    notifications.unshift(newNotif);
+                    task.notified = true;
+                    needsUpdate = true;
+                }
+            }
+        });
+    });
+
+    if (needsUpdate) {
+        saveData();
+        localStorage.setItem('notifications', JSON.stringify(notifications));
+        updateNotifUI();
+    }
+}, 30000);
+
 // Initial Load
 renderLeads();
+updateNotifUI();
