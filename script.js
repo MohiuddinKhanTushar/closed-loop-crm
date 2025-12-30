@@ -27,11 +27,18 @@ function toggleMenu() {
 }
 
 function showScreen(screenId) {
+    // Hide all screens
     document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
+    
     const target = document.getElementById(screenId);
-    if(target) target.style.display = 'block';
-    if(screenId === 'pipeline-screen') renderLeads();
-    if(screenId === 'tasks-screen') renderAllTasks();
+    if(target) {
+        target.style.display = 'block';
+        
+        // Trigger logic based on which screen opened
+        if(screenId === 'pipeline-screen') renderLeads();
+        if(screenId === 'tasks-screen') renderAllTasks();
+        if(screenId === 'settings-screen') renderSettingsContent(); // Changed name to avoid conflict
+    }
 }
 
 function openFullProfile() {
@@ -771,3 +778,199 @@ setInterval(() => {
 // Initial Load
 renderLeads();
 updateNotifUI();
+
+// 10. AUTHENTICATION & SIGN UP LOGIC
+let isSignUpMode = true;
+
+function checkAuth() {
+    const accountExists = localStorage.getItem('crm_user_creds');
+    const isLoggedIn = localStorage.getItem('isLoggedIn');
+    const authScreen = document.getElementById('auth-screen');
+
+    if (isLoggedIn === 'true') {
+        authScreen.style.display = 'none';
+        const savedCreds = JSON.parse(accountExists);
+        if(savedCreds) updateTopRightAvatar(savedCreds.initials);
+        return;
+    }
+
+    // If an account exists, default to Login mode, otherwise Sign Up
+    if (accountExists) {
+        setAuthMode('login');
+    } else {
+        setAuthMode('signup');
+    }
+    authScreen.style.display = 'flex';
+}
+
+function setAuthMode(mode) {
+    isSignUpMode = (mode === 'signup');
+    
+    // Get all the elements from your HTML
+    const nameFields = document.getElementById('auth-name-fields');
+    const title = document.getElementById('auth-title');
+    const subtitle = document.getElementById('auth-subtitle');
+    const btn = document.getElementById('auth-button');
+    const toggleText = document.getElementById('auth-toggle-text');
+    const toggleLink = document.getElementById('auth-toggle-link');
+    const errorEl = document.getElementById('auth-error');
+
+    if (errorEl) errorEl.style.display = 'none';
+
+    if (isSignUpMode) {
+        nameFields.style.display = 'block';
+        title.innerText = "Create Account";
+        subtitle.innerText = "Set up your secure CRM access";
+        btn.innerText = "Sign Up";
+        toggleText.innerText = "Already have an account? ";
+        toggleLink.innerText = "Log In";
+    } else {
+        nameFields.style.display = 'none';
+        title.innerText = "Welcome Back";
+        subtitle.innerText = "Log in to manage your leads";
+        btn.innerText = "Log In";
+        toggleText.innerText = "Don't have an account? ";
+        toggleLink.innerText = "Sign Up";
+    }
+}
+
+function toggleAuthMode() {
+    setAuthMode(isSignUpMode ? 'login' : 'signup');
+}
+
+function handleAuthAction() {
+    const user = document.getElementById('auth-username').value.trim();
+    const pass = document.getElementById('auth-password').value;
+    const errorEl = document.getElementById('auth-error');
+    errorEl.style.display = 'none';
+
+    if (isSignUpMode) {
+        const firstName = document.getElementById('auth-first-name').value.trim();
+        const lastName = document.getElementById('auth-last-name').value.trim();
+
+        if (!user || !pass || !firstName || !lastName) {
+            errorEl.innerText = "Please fill in all fields.";
+            errorEl.style.display = 'block';
+            return;
+        }
+
+        const initials = (firstName[0] + lastName[0]).toUpperCase();
+        const newUser = { 
+            username: user, 
+            password: pass, 
+            firstName: firstName, 
+            lastName: lastName, 
+            initials: initials 
+        };
+
+        localStorage.setItem('crm_user_creds', JSON.stringify(newUser));
+        localStorage.setItem('isLoggedIn', 'true');
+        document.getElementById('auth-screen').style.display = 'none';
+        updateTopRightAvatar(initials);
+        showToast(`Welcome, ${firstName}!`);
+    } else {
+        const savedCreds = JSON.parse(localStorage.getItem('crm_user_creds'));
+        if (savedCreds && user === savedCreds.username && pass === savedCreds.password) {
+            localStorage.setItem('isLoggedIn', 'true');
+            document.getElementById('auth-screen').style.display = 'none';
+            updateTopRightAvatar(savedCreds.initials);
+            showToast("Welcome back!");
+        } else {
+            errorEl.innerText = "Invalid username or password.";
+            errorEl.style.display = 'block';
+        }
+    }
+}
+
+function updateTopRightAvatar(initials) {
+    const avatarElements = document.querySelectorAll('.user-initials-display');
+    avatarElements.forEach(el => {
+        el.innerText = initials;
+    });
+}
+
+// This is what your Avatar button calls
+function openProfilePage() {
+    showScreen('settings-screen');
+}
+
+// This actually draws the content
+function renderSettingsContent() {
+    const savedCreds = JSON.parse(localStorage.getItem('crm_user_creds'));
+    const container = document.getElementById('settings-screen');
+    
+    if (!savedCreds || !container) return;
+
+    container.innerHTML = `
+        <header class="teal-header" style="min-height: auto; padding: 12px 20px 10px;">
+            <div class="header-top" style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 5px;">
+                <button onclick="showScreen('pipeline-screen')" style="background:none; border:none; color:white; cursor:pointer; padding: 0; display: flex; align-items: center;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="square">
+                        <path d="M19 12H5M11 18l-6-6 6-6"/>
+                    </svg>
+                </button>
+                <div class="user-profile-mini user-initials-display" style="margin: 0; width: 30px; height: 30px; font-size: 12px;">${savedCreds.initials}</div>
+            </div>
+            <div class="page-identity">
+                <h2 style="margin: 0; font-size: 14px; font-weight: 600; color: rgba(255, 255, 255, 0.85); letter-spacing: 1px;">User Settings</h2>
+            </div>
+        </header>
+
+        <main class="content" style="padding: 20px;">
+            <div class="profile-card" style="text-align: left; padding: 25px 20px; background: white; border-radius: 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.04); border: 1px solid #f0f0f0;">
+                
+                <label style="font-size: 11px; font-weight: 700; color: #aaa; text-transform: uppercase;">First Name</label>
+                <input type="text" id="edit-firstName" value="${savedCreds.firstName}" style="margin-bottom: 15px; border-bottom: 2px solid #f0f0f0; border-top:none; border-left:none; border-right:none; border-radius:0; padding: 8px 0;">
+
+                <label style="font-size: 11px; font-weight: 700; color: #aaa; text-transform: uppercase;">Last Name</label>
+                <input type="text" id="edit-lastName" value="${savedCreds.lastName}" style="margin-bottom: 15px; border-bottom: 2px solid #f0f0f0; border-top:none; border-left:none; border-right:none; border-radius:0; padding: 8px 0;">
+
+                <label style="font-size: 11px; font-weight: 700; color: #aaa; text-transform: uppercase;">Username (Login)</label>
+                <input type="text" id="edit-username" value="${savedCreds.username}" style="margin-bottom: 25px; border-bottom: 2px solid #f0f0f0; border-top:none; border-left:none; border-right:none; border-radius:0; padding: 8px 0;">
+
+                <button onclick="updateUserProfile()" class="save-btn" style="margin-bottom: 15px;">Update Profile</button>
+                
+                <button onclick="logout()" style="width: 100%; padding: 15px; background: #fff; color: #ff3b30; border: 1px solid #ff3b30; border-radius: 12px; font-weight: 700; font-size: 15px; cursor: pointer;">
+                    Logout
+                </button>
+            </div>
+            
+            <p style="text-align: center; color: #ccc; font-size: 11px; margin-top: 30px; letter-spacing: 0.5px;">TEAL CRM v1.0.4</p>
+        </main>
+    `;
+}
+function logout() {
+    localStorage.removeItem('isLoggedIn');
+    window.location.reload();
+}
+
+function updateUserProfile() {
+    const newFirstName = document.getElementById('edit-firstName').value.trim();
+    const newLastName = document.getElementById('edit-lastName').value.trim();
+    const newUsername = document.getElementById('edit-username').value.trim();
+
+    if (!newFirstName || !newLastName || !newUsername) {
+        showToast("All fields are required");
+        return;
+    }
+
+    // Calculate new initials
+    const initials = (newFirstName[0] + newLastName[0]).toUpperCase();
+
+    // Create the updated object
+    const updatedCreds = {
+        firstName: newFirstName,
+        lastName: newLastName,
+        username: newUsername,
+        initials: initials,
+        password: JSON.parse(localStorage.getItem('crm_user_creds')).password // Keep old password
+    };
+
+    // Save to LocalStorage
+    localStorage.setItem('crm_user_creds', JSON.stringify(updatedCreds));
+    
+    showToast("Profile Updated Successfully!");
+    
+    // Refresh the screen to show new initials in the header
+    renderSettingsContent();
+}
