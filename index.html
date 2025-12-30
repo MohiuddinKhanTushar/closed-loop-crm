@@ -357,14 +357,20 @@
                    style="width:100%; padding:16px; margin-bottom:12px; border:1px solid #eee; border-radius:12px; background:#f9f9f9; font-size:16px; outline:none;">
         </div>
 
-        <input type="text" id="auth-username" placeholder="Username" 
+        <input type="text" id="auth-username" 
+               inputmode="email" 
+               placeholder="Email or Mobile Number" 
                style="width:100%; padding:16px; margin-bottom:12px; border:1px solid #eee; border-radius:12px; background:#f9f9f9; font-size:16px; outline:none;">
         
         <input type="password" id="auth-password" placeholder="Password" 
-               style="width:100%; padding:16px; margin-bottom:12px; border:1px solid #eee; border-radius:12px; background:#f9f9f9; font-size:16px; outline:none;">
+               style="width:100%; padding:16px; margin-bottom:8px; border:1px solid #eee; border-radius:12px; background:#f9f9f9; font-size:16px; outline:none;">
+        
+        <div id="forgot-password-area" style="text-align: right; margin-bottom: 20px; display: none;">
+            <a href="javascript:void(0)" onclick="handleForgotPassword()" style="color: #999; font-size: 12px; text-decoration: none;">Forgot Password?</a>
+        </div>
         
         <button id="auth-button" onclick="handleAuthAction()" 
-                style="width:100%; padding:18px; background:var(--teal-primary); color:white; border:none; border-radius:12px; font-size:16px; font-weight:700; transition: 0.3s;">
+                style="width:100%; padding:18px; background:var(--teal-primary); color:white; border:none; border-radius:12px; font-size:16px; font-weight:700; transition: 0.3s; margin-top: 10px;">
             Sign Up
         </button>
         

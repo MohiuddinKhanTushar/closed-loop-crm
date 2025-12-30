@@ -806,31 +806,34 @@ function checkAuth() {
 function setAuthMode(mode) {
     isSignUpMode = (mode === 'signup');
     
-    // Get all the elements from your HTML
-    const nameFields = document.getElementById('auth-name-fields');
     const title = document.getElementById('auth-title');
     const subtitle = document.getElementById('auth-subtitle');
     const btn = document.getElementById('auth-button');
     const toggleText = document.getElementById('auth-toggle-text');
     const toggleLink = document.getElementById('auth-toggle-link');
-    const errorEl = document.getElementById('auth-error');
-
-    if (errorEl) errorEl.style.display = 'none';
+    
+    // Elements to toggle
+    const nameFields = document.getElementById('auth-name-fields');
+    const forgotArea = document.getElementById('forgot-password-area');
 
     if (isSignUpMode) {
-        nameFields.style.display = 'block';
         title.innerText = "Create Account";
         subtitle.innerText = "Set up your secure CRM access";
         btn.innerText = "Sign Up";
-        toggleText.innerText = "Already have an account? ";
+        toggleText.innerText = "Already have an account?";
         toggleLink.innerText = "Log In";
+        
+        nameFields.style.display = "block";  // Show Names
+        forgotArea.style.display = "none";    // Hide Forgot Password
     } else {
-        nameFields.style.display = 'none';
         title.innerText = "Welcome Back";
         subtitle.innerText = "Log in to manage your leads";
         btn.innerText = "Log In";
-        toggleText.innerText = "Don't have an account? ";
+        toggleText.innerText = "Don't have an account?";
         toggleLink.innerText = "Sign Up";
+        
+        nameFields.style.display = "none";   // Hide Names
+        forgotArea.style.display = "block";  // Show Forgot Password
     }
 }
 
@@ -842,18 +845,49 @@ function handleAuthAction() {
     const user = document.getElementById('auth-username').value.trim();
     const pass = document.getElementById('auth-password').value;
     const errorEl = document.getElementById('auth-error');
+    const authBtn = document.getElementById('auth-button');
+
+    // Reset error display
     errorEl.style.display = 'none';
+
+    // Helper for consistent error haptics and feedback
+    const triggerError = (msg) => {
+        errorEl.innerText = msg;
+        errorEl.style.display = 'block';
+        
+        // Physical Haptic (for APK)
+        if (navigator.vibrate) navigator.vibrate(50);
+
+        // Visual Haptic (Shake)
+        authBtn.style.transform = "translateX(5px)";
+        setTimeout(() => authBtn.style.transform = "translateX(-5px)", 50);
+        setTimeout(() => authBtn.style.transform = "translateX(0)", 100);
+    };
+
+    // Helper to validate Email or Phone
+    const isValidIdentifier = (val) => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const phoneRegex = /^\+?[0-9]{10,15}$/; 
+        return emailRegex.test(val) || phoneRegex.test(val);
+    };
 
     if (isSignUpMode) {
         const firstName = document.getElementById('auth-first-name').value.trim();
         const lastName = document.getElementById('auth-last-name').value.trim();
 
+        // 1. Check for empty fields
         if (!user || !pass || !firstName || !lastName) {
-            errorEl.innerText = "Please fill in all fields.";
-            errorEl.style.display = 'block';
+            triggerError("Please fill in all fields.");
             return;
         }
 
+        // 2. Validate Identity (Email or Phone)
+        if (!isValidIdentifier(user)) {
+            triggerError("Username must be a valid Email or Mobile Number.");
+            return;
+        }
+
+        // 3. Create Account
         const initials = (firstName[0] + lastName[0]).toUpperCase();
         const newUser = { 
             username: user, 
@@ -868,16 +902,26 @@ function handleAuthAction() {
         document.getElementById('auth-screen').style.display = 'none';
         updateTopRightAvatar(initials);
         showToast(`Welcome, ${firstName}!`);
+        
     } else {
-        const savedCreds = JSON.parse(localStorage.getItem('crm_user_creds'));
-        if (savedCreds && user === savedCreds.username && pass === savedCreds.password) {
+        // --- LOGIN MODE ---
+        const savedCredsRaw = localStorage.getItem('crm_user_creds');
+        
+        if (!savedCredsRaw) {
+            triggerError("No account found. Please sign up.");
+            return;
+        }
+
+        const savedCreds = JSON.parse(savedCredsRaw);
+        
+        // Check credentials (case-sensitive password, case-insensitive username for convenience)
+        if (user.toLowerCase() === savedCreds.username.toLowerCase() && pass === savedCreds.password) {
             localStorage.setItem('isLoggedIn', 'true');
             document.getElementById('auth-screen').style.display = 'none';
             updateTopRightAvatar(savedCreds.initials);
             showToast("Welcome back!");
         } else {
-            errorEl.innerText = "Invalid username or password.";
-            errorEl.style.display = 'block';
+            triggerError("Invalid username or password.");
         }
     }
 }
