@@ -614,18 +614,29 @@ input, select, textarea {
     justify-content: center;
 }
 
+/* Update your CSS to this structure */
 .toast {
     position: fixed;
-    bottom: 100px; /* Sits above the bottom nav */
+    bottom: 30px;
     left: 50%;
-    transform: translateX(-50%);
-    background: #333;
+    transform: translateX(-50%) translateY(20px);
+    background: #008080; /* Your Teal color */
     color: white;
     padding: 12px 20px;
-    border-radius: 50px;
-    z-index: 10000;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-    animation: slideUp 0.3s ease-out;
+    border-radius: 12px;
+    display: flex; /* Keep it flex for the icon and text */
+    align-items: center;
+    gap: 10px;
+    z-index: 20000; /* Higher than the Auth screen */
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.toast.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
 }
 
 .toast-content {

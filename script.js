@@ -1,3 +1,41 @@
+// 1. Firebase Configuration
+const firebaseConfig = {
+    apiKey: "AIzaSyAFjiFR8-P42EWiJQWRrZGdf7sJ2O4oWZU",
+    authDomain: "closed-loop-crm.firebaseapp.com",
+    projectId: "closed-loop-crm",
+    storageBucket: "closed-loop-crm.firebasestorage.app",
+    messagingSenderId: "770921103170",
+    appId: "1:770921103170:web:2b642ed99e03bc3f4ad2db"
+};
+
+// 2. Initialize
+firebase.initializeApp(firebaseConfig);
+
+// 3. Shortcuts (These are what we will use in our functions)
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+// 4. Offline Persistence (Vital for Mobile Apps)
+// This lets the CRM work even when the user has no signal
+db.enablePersistence().catch((err) => {
+    console.error("Persistence error:", err.code);
+});
+
+// This runs automatically whenever a user logs in or out
+auth.onAuthStateChanged((user) => {
+    const authScreen = document.getElementById('auth-screen');
+    
+    if (user) {
+        // User is logged in! 
+        console.log("Logged in as:", user.email);
+        authScreen.style.display = 'none'; // Hide login
+        syncLeadsFromServer();             // Start getting their leads
+    } else {
+        // No user is logged in
+        authScreen.style.display = 'flex'; // Show login
+    }
+});
+
 // 1. DATA SETUP & STATE
 let currentFilter = 'New';
 let activeLeadId = null;
@@ -436,14 +474,32 @@ function changeMonth(offset) {
 }
 
 // Uniform Notification Function
-function showToast(message) {
-    const toast = document.getElementById('toast-notification');
-    const msgEl = document.getElementById('toast-message');
-    if(!toast || !msgEl) return;
-    msgEl.innerText = message;
-    toast.style.display = 'block';
-    setTimeout(() => { toast.style.display = 'none'; }, 3000);
-}
+window.showToast = function(message) {
+    const toastContainer = document.getElementById('toast-notification');
+    const toastMessage = document.getElementById('toast-message');
+
+    if (!toastContainer || !toastMessage) return;
+
+    toastMessage.innerText = message;
+    
+    // Ensure it's above the Login screen
+    toastContainer.style.zIndex = "20001";
+    toastContainer.style.display = 'flex'; 
+
+    // Use a tiny timeout to allow display:flex to register before animating
+    setTimeout(() => {
+        toastContainer.classList.add('show');
+    }, 10);
+
+    if (navigator.vibrate) navigator.vibrate(30);
+
+    setTimeout(() => {
+        toastContainer.classList.remove('show');
+        setTimeout(() => { 
+            toastContainer.style.display = 'none'; 
+        }, 3000); // Give it time to fade out
+    }, 3000);
+};
 
 // --- NOTIFICATIONS & REMINDERS ---
 
@@ -782,26 +838,22 @@ updateNotifUI();
 // 10. AUTHENTICATION & SIGN UP LOGIC
 let isSignUpMode = true;
 
-function checkAuth() {
-    const accountExists = localStorage.getItem('crm_user_creds');
-    const isLoggedIn = localStorage.getItem('isLoggedIn');
+auth.onAuthStateChanged((user) => {
     const authScreen = document.getElementById('auth-screen');
-
-    if (isLoggedIn === 'true') {
+    if (user) {
         authScreen.style.display = 'none';
-        const savedCreds = JSON.parse(accountExists);
-        if(savedCreds) updateTopRightAvatar(savedCreds.initials);
-        return;
-    }
-
-    // If an account exists, default to Login mode, otherwise Sign Up
-    if (accountExists) {
-        setAuthMode('login');
+        // Fetch initials from Firestore to update the UI
+        db.collection("users").doc(user.uid).get().then((doc) => {
+            if (doc.exists) {
+                updateTopRightAvatar(doc.data().initials);
+            }
+        });
+        // syncLeadsFromServer(); // We will build this next
     } else {
-        setAuthMode('signup');
+        authScreen.style.display = 'flex';
+        setAuthMode('login'); 
     }
-    authScreen.style.display = 'flex';
-}
+});
 
 function setAuthMode(mode) {
     isSignUpMode = (mode === 'signup');
@@ -841,87 +893,59 @@ function toggleAuthMode() {
     setAuthMode(isSignUpMode ? 'login' : 'signup');
 }
 
-function handleAuthAction() {
-    const user = document.getElementById('auth-username').value.trim();
+// UPGRADED handleAuthAction (Firebase Version)
+async function handleAuthAction() {
+    const email = document.getElementById('auth-username').value.trim();
     const pass = document.getElementById('auth-password').value;
     const errorEl = document.getElementById('auth-error');
     const authBtn = document.getElementById('auth-button');
 
-    // Reset error display
     errorEl.style.display = 'none';
 
-    // Helper for consistent error haptics and feedback
     const triggerError = (msg) => {
         errorEl.innerText = msg;
         errorEl.style.display = 'block';
-        
-        // Physical Haptic (for APK)
         if (navigator.vibrate) navigator.vibrate(50);
-
-        // Visual Haptic (Shake)
         authBtn.style.transform = "translateX(5px)";
         setTimeout(() => authBtn.style.transform = "translateX(-5px)", 50);
         setTimeout(() => authBtn.style.transform = "translateX(0)", 100);
-    };
-
-    // Helper to validate Email or Phone
-    const isValidIdentifier = (val) => {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        const phoneRegex = /^\+?[0-9]{10,15}$/; 
-        return emailRegex.test(val) || phoneRegex.test(val);
     };
 
     if (isSignUpMode) {
         const firstName = document.getElementById('auth-first-name').value.trim();
         const lastName = document.getElementById('auth-last-name').value.trim();
 
-        // 1. Check for empty fields
-        if (!user || !pass || !firstName || !lastName) {
+        if (!email || !pass || !firstName || !lastName) {
             triggerError("Please fill in all fields.");
             return;
         }
 
-        // 2. Validate Identity (Email or Phone)
-        if (!isValidIdentifier(user)) {
-            triggerError("Username must be a valid Email or Mobile Number.");
-            return;
+        try {
+            // 1. Create account in Firebase Auth
+            const userCredential = await auth.createUserWithEmailAndPassword(email, pass);
+            const user = userCredential.user;
+
+            // 2. Save profile details to Firestore
+            const initials = (firstName[0] + lastName[0]).toUpperCase();
+            await db.collection("users").doc(user.uid).set({
+                firstName: firstName,
+                lastName: lastName,
+                initials: initials,
+                email: email,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            showToast(`Welcome, ${firstName}!`);
+        } catch (error) {
+            triggerError(error.message);
         }
-
-        // 3. Create Account
-        const initials = (firstName[0] + lastName[0]).toUpperCase();
-        const newUser = { 
-            username: user, 
-            password: pass, 
-            firstName: firstName, 
-            lastName: lastName, 
-            initials: initials 
-        };
-
-        localStorage.setItem('crm_user_creds', JSON.stringify(newUser));
-        localStorage.setItem('isLoggedIn', 'true');
-        document.getElementById('auth-screen').style.display = 'none';
-        updateTopRightAvatar(initials);
-        showToast(`Welcome, ${firstName}!`);
-        
     } else {
         // --- LOGIN MODE ---
-        const savedCredsRaw = localStorage.getItem('crm_user_creds');
-        
-        if (!savedCredsRaw) {
-            triggerError("No account found. Please sign up.");
-            return;
-        }
-
-        const savedCreds = JSON.parse(savedCredsRaw);
-        
-        // Check credentials (case-sensitive password, case-insensitive username for convenience)
-        if (user.toLowerCase() === savedCreds.username.toLowerCase() && pass === savedCreds.password) {
-            localStorage.setItem('isLoggedIn', 'true');
-            document.getElementById('auth-screen').style.display = 'none';
-            updateTopRightAvatar(savedCreds.initials);
+        try {
+            await auth.signInWithEmailAndPassword(email, pass);
             showToast("Welcome back!");
-        } else {
-            triggerError("Invalid username or password.");
+        } catch (error) {
+            triggerError("Invalid login details.");
         }
     }
 }
@@ -939,11 +963,14 @@ function openProfilePage() {
 }
 
 // This actually draws the content
-function renderSettingsContent() {
-    const savedCreds = JSON.parse(localStorage.getItem('crm_user_creds'));
+async function renderSettingsContent() {
+    const user = auth.currentUser;
     const container = document.getElementById('settings-screen');
-    
-    if (!savedCreds || !container) return;
+    if (!user || !container) return;
+
+    // Get the latest data from the Cloud
+    const userDoc = await db.collection("users").doc(user.uid).get();
+    const data = userDoc.data();
 
     container.innerHTML = `
         <header class="teal-header" style="min-height: auto; padding: 12px 20px 10px;">
@@ -953,7 +980,7 @@ function renderSettingsContent() {
                         <path d="M19 12H5M11 18l-6-6 6-6"/>
                     </svg>
                 </button>
-                <div class="user-profile-mini user-initials-display" style="margin: 0; width: 30px; height: 30px; font-size: 12px;">${savedCreds.initials}</div>
+                <div class="user-profile-mini user-initials-display" style="margin: 0; width: 30px; height: 30px; font-size: 12px;">${data.initials}</div>
             </div>
             <div class="page-identity">
                 <h2 style="margin: 0; font-size: 14px; font-weight: 600; color: rgba(255, 255, 255, 0.85); letter-spacing: 1px;">User Settings</h2>
@@ -964,13 +991,13 @@ function renderSettingsContent() {
             <div class="profile-card" style="text-align: left; padding: 25px 20px; background: white; border-radius: 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.04); border: 1px solid #f0f0f0;">
                 
                 <label style="font-size: 11px; font-weight: 700; color: #aaa; text-transform: uppercase;">First Name</label>
-                <input type="text" id="edit-firstName" value="${savedCreds.firstName}" style="margin-bottom: 15px; border-bottom: 2px solid #f0f0f0; border-top:none; border-left:none; border-right:none; border-radius:0; padding: 8px 0;">
+                <input type="text" id="edit-firstName" value="${data.firstName}" style="margin-bottom: 15px; border-bottom: 2px solid #f0f0f0; border-top:none; border-left:none; border-right:none; border-radius:0; padding: 8px 0; width:100%;">
 
                 <label style="font-size: 11px; font-weight: 700; color: #aaa; text-transform: uppercase;">Last Name</label>
-                <input type="text" id="edit-lastName" value="${savedCreds.lastName}" style="margin-bottom: 15px; border-bottom: 2px solid #f0f0f0; border-top:none; border-left:none; border-right:none; border-radius:0; padding: 8px 0;">
+                <input type="text" id="edit-lastName" value="${data.lastName}" style="margin-bottom: 15px; border-bottom: 2px solid #f0f0f0; border-top:none; border-left:none; border-right:none; border-radius:0; padding: 8px 0; width:100%;">
 
-                <label style="font-size: 11px; font-weight: 700; color: #aaa; text-transform: uppercase;">Username (Login)</label>
-                <input type="text" id="edit-username" value="${savedCreds.username}" style="margin-bottom: 25px; border-bottom: 2px solid #f0f0f0; border-top:none; border-left:none; border-right:none; border-radius:0; padding: 8px 0;">
+                <label style="font-size: 11px; font-weight: 700; color: #aaa; text-transform: uppercase;">Email Address</label>
+                <input type="text" value="${user.email}" disabled style="margin-bottom: 25px; border-bottom: 2px solid #f0f0f0; border-top:none; border-left:none; border-right:none; border-radius:0; padding: 8px 0; width:100%; color: #ccc;">
 
                 <button onclick="updateUserProfile()" class="save-btn" style="margin-bottom: 15px;">Update Profile</button>
                 
@@ -978,43 +1005,55 @@ function renderSettingsContent() {
                     Logout
                 </button>
             </div>
-            
-            <p style="text-align: center; color: #ccc; font-size: 11px; margin-top: 30px; letter-spacing: 0.5px;">TEAL CRM v1.0.4</p>
+            <p style="text-align: center; color: #ccc; font-size: 11px; margin-top: 30px; letter-spacing: 0.5px;">CLOSED LOOP CRM v1.0.5</p>
         </main>
     `;
 }
 function logout() {
-    localStorage.removeItem('isLoggedIn');
-    window.location.reload();
+    auth.signOut().then(() => {
+        window.location.reload();
+    });
 }
 
-function updateUserProfile() {
+async function updateUserProfile() {
+    const user = auth.currentUser;
     const newFirstName = document.getElementById('edit-firstName').value.trim();
     const newLastName = document.getElementById('edit-lastName').value.trim();
-    const newUsername = document.getElementById('edit-username').value.trim();
 
-    if (!newFirstName || !newLastName || !newUsername) {
-        showToast("All fields are required");
+    if (!newFirstName || !newLastName || !user) return;
+
+    const initials = (newFirstName[0] + newLastName[0]).toUpperCase();
+
+    try {
+        await db.collection("users").doc(user.uid).update({
+            firstName: newFirstName,
+            lastName: newLastName,
+            initials: initials
+        });
+        showToast("Profile Updated in Cloud!");
+        updateTopRightAvatar(initials);
+    } catch (error) {
+        showToast("Error updating profile");
+    }
+}
+
+window.handleForgotPassword = function() {
+    const emailInput = document.getElementById('auth-username');
+    const email = emailInput ? emailInput.value.trim() : "";
+    
+    if (!email) {
+        console.log("No email found, attempting toast...");
+        showToast("Please enter your email first");
         return;
     }
 
-    // Calculate new initials
-    const initials = (newFirstName[0] + newLastName[0]).toUpperCase();
-
-    // Create the updated object
-    const updatedCreds = {
-        firstName: newFirstName,
-        lastName: newLastName,
-        username: newUsername,
-        initials: initials,
-        password: JSON.parse(localStorage.getItem('crm_user_creds')).password // Keep old password
-    };
-
-    // Save to LocalStorage
-    localStorage.setItem('crm_user_creds', JSON.stringify(updatedCreds));
-    
-    showToast("Profile Updated Successfully!");
-    
-    // Refresh the screen to show new initials in the header
-    renderSettingsContent();
-}
+    auth.sendPasswordResetEmail(email)
+        .then(() => {
+            console.log("Reset success, attempting toast...");
+            showToast("Reset link sent to your email!");
+        })
+        .catch((error) => {
+            console.error("Firebase Error:", error.code);
+            showToast("Error: " + error.message);
+        });
+};
