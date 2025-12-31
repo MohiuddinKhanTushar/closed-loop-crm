@@ -15,7 +15,12 @@ body {
     padding: 0;
     color: var(--text-dark);
     font-family: system-ui, -apple-system, sans-serif;
-    overflow-x: hidden;
+    
+    /* FIX: Prevents the whole browser window from scrolling */
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden; 
+    position: fixed;
 }
 
 /* --- HEADER & BRANDING --- */
@@ -254,14 +259,14 @@ body {
         var(--teal-dark) 0%, 
         var(--teal-primary) 100%
     );
-    padding: 10px 25px; 
+    padding: 2px 25px; 
     display: flex;
     align-items: center;
-    justify-content: flex-start;
+    justify-content: center;
 }
 
 .side-menu-logo {
-    height: 90px; /* Adjust based on your logo proportions */
+    height: 100px; /* Adjust based on your logo proportions */
     width: auto;
 }
 
@@ -661,4 +666,179 @@ input, select, textarea {
 .task-count-badge {
     box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     border: 1px solid white;
+}
+
+#splash-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: #008080; /* Your Teal Brand Color */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    transition: opacity 0.6s ease, visibility 0.6s ease;
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+}
+
+/* Class to trigger the fade out */
+.fade-out {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.splash-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    transform: translateY(-50px);
+    /* Absolute centering fallback */
+    position: relative;
+    left: 0;
+    margin: 0 auto;
+}
+
+.splash-logo-img {
+    width: 240px; 
+    max-width: 80vw;
+    height: auto;
+    margin-bottom: 40px;
+    display: block;
+    /* If the logo looks shifted left, it might be the image. 
+       Adding this ensures the browser treats it as a centered block. */
+    margin-left: auto;
+    margin-right: auto;
+    
+    animation: splashLogoFade 1.2s ease-out forwards;
+}
+
+/* The Progress Bar (Sleeker under the larger logo) */
+.loading-bar-container {
+    width: 140px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+    /* Manual reset to ensure it's under the logo */
+    margin: 0 auto;
+}
+
+.loading-bar-progress {
+    width: 40%;
+    height: 100%;
+    background: white;
+    border-radius: 10px;
+    position: absolute;
+    animation: loadingMove 1.5s infinite ease-in-out;
+}
+
+/* Animations */
+@keyframes splashLogoFade {
+    0% { 
+        opacity: 0; 
+        transform: translateY(15px) scale(0.9); 
+    }
+    100% { 
+        opacity: 1; 
+        transform: translateY(0) scale(1); 
+    }
+}
+
+@keyframes loadingMove {
+    0% { left: -40%; }
+    100% { left: 100%; }
+}
+
+/* Settings Page Styling */
+/* FORCE LEFT ALIGNMENT */
+.settings-card {
+    text-align: left !important; 
+    padding: 25px 20px !important;
+    display: block !important;
+}
+
+.settings-group {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important; /* Forces children to the left */
+    margin-bottom: 20px !important;
+    width: 100% !important;
+}
+
+.settings-group label {
+    text-align: left !important;
+    width: 100% !important;
+    margin-bottom: 5px !important;
+}
+
+.settings-group input {
+    width: 100% !important;
+    text-align: left !important;
+    box-sizing: border-box !important;
+}
+
+.settings-group input:focus {
+    border-bottom-color: var(--teal-primary);
+}
+
+.settings-group input:disabled {
+    color: #ccc;
+    cursor: not-allowed;
+}
+
+.content {
+    /* 1. Calculate height excluding the teal header (~120px) */
+    height: calc(100vh - 120px); 
+    /* 2. Enable vertical scrolling */
+    overflow-y: auto !important; 
+    /* 3. Smooth scrolling for iOS */
+    -webkit-overflow-scrolling: touch; 
+    padding: 20px;
+    box-sizing: border-box;
+    display: block;
+}
+
+/* Optional: Make the scrollbar invisible for a cleaner look */
+.content::-webkit-scrollbar {
+    display: none;
+}
+.content {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* Standardized User Avatar */
+.user-initials-display {
+    width: 36px !important;  /* Standard size */
+    height: 36px !important; /* Standard size */
+    background-color: rgba(255, 255, 255, 0.2); /* Semi-transparent white */
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    flex-shrink: 0; /* Prevents it from squishing */
+    border: 2px solid rgba(255, 255, 255, 0.4);
+}
+
+#profile-screen {
+    height: 100vh;
+    overflow: hidden;
+    display: none; /* JS will change this to block */
+}
+
+/* Ensure the activity log specifically can grow */
+#activity-log {
+    padding-bottom: 50px; /* Extra space at the bottom */
 }

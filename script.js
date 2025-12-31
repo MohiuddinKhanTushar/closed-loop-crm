@@ -103,6 +103,10 @@ function openFullProfile() {
     renderActivities(lead);
     closeDetail();
     showScreen('profile-screen');
+    const contentArea = document.querySelector('#profile-screen .content');
+    if (contentArea) {
+        contentArea.scrollTop = 0;
+    }
 }
 
 // 3. ACTIVITIES LOGIC
@@ -684,33 +688,33 @@ function renderCalendar() {
 }
 
 function handleDateClick(dateString) {
-    const allTasks = leads.flatMap(l => (l.activities || []).map(a => ({...a, leadName: l.name})));
+    const allTasks = leads.flatMap(l => (l.activities || []).map(a => ({...a, leadName: l.name, leadId: l.id})));
     const tasksForDay = allTasks.filter(t => t.type === 'Task' && t.date === dateString);
 
     if (tasksForDay.length === 0) return;
 
+    // If only one task, go straight to lead
     if (tasksForDay.length === 1) {
-        activeLeadId = tasksForDay[0].leadId;
+        activeLeadId = tasksForDay[0].leadId; // Ensure this is set!
         closeCalendar();
         openFullProfile();
         return;
     }
 
+    // If multiple tasks, show the picker modal
     const modal = document.getElementById('calendar-task-modal');
     const listContainer = document.getElementById('calendar-task-list');
     const dateHeader = document.getElementById('calendar-modal-date');
 
-    if (!modal || !listContainer) return;
-
     dateHeader.innerText = `Tasks for ${new Date(dateString).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
     
     listContainer.innerHTML = tasksForDay.map(task => `
-        <div class="search-result-item" onclick="goToLeadFromCalendarPicker(${task.leadId})" style="border-bottom:1px solid #eee; padding:12px 10px;">
+        <div class="search-result-item" onclick="goToLeadFromCalendarPicker(${task.leadId})">
             <div style="display:flex; justify-content:space-between; align-items:center;">
-                <span style="font-weight:700; color:var(--text-dark);">${task.description}</span>
-                <span style="font-size:11px; color:#ff9500; font-weight:700;">${task.time}</span>
+                <span style="font-weight:700;">${task.description}</span>
+                <span style="font-size:11px; color:#ff9500;">${task.time}</span>
             </div>
-            <div style="font-size:12px; color:#666; margin-top:2px;">Lead: ${task.leadName} ${task.completed ? '✅' : ''}</div>
+            <div style="font-size:12px; color:#666;">Lead: ${task.leadName}</div>
         </div>
     `).join('');
 
@@ -721,7 +725,8 @@ function goToLeadFromCalendarPicker(leadId) {
     activeLeadId = leadId;
     document.getElementById('calendar-task-modal').style.display = 'none';
     closeCalendar();
-    openFullProfile();
+    // Use a small timeout to ensure the UI has time to transition
+    setTimeout(openFullProfile, 50);
 }
 
 function closeCalendarTaskModal(event) {
@@ -746,6 +751,7 @@ function renderAllTasks() {
         }
     });
 
+    // Sort: Newest/Upcoming first
     allTasks.sort((a, b) => {
         const dateTimeA = new Date(`${a.date} ${a.time || '00:00'}`);
         const dateTimeB = new Date(`${b.date} ${b.time || '00:00'}`);
@@ -759,11 +765,12 @@ function renderAllTasks() {
 
     allTasks.forEach(task => {
         const card = document.createElement('div');
-        card.className = 'lead-card';
+        // Use your existing class for styling
+        card.className = 'lead-card'; 
         card.style.marginBottom = '12px';
         card.style.display = 'flex';
-        card.style.alignItems = 'center';
-        card.style.justifyContent = 'space-between';
+        card.style.flexDirection = 'column'; // Stack info vertically
+        card.style.alignItems = 'flex-start';
         card.style.borderLeft = `4px solid ${task.completed ? '#4caf50' : '#ff9500'}`;
         if(task.completed) card.style.opacity = '0.7';
         
@@ -772,24 +779,19 @@ function renderAllTasks() {
             openFullProfile();
         };
 
+        // This is the CLEAN HTML for a task, NOT a settings page
         card.innerHTML = `
-            <div class="card-info" style="flex-grow:1; ${task.completed ? 'text-decoration: line-through;' : ''}">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 4px;">
-                    <h3 style="margin:0; font-size: 15px;">${task.description}</h3>
-                    <span style="font-size:10px; background:${task.completed ? '#e8f5e9' : '#fff3e0'}; color:${task.completed ? '#4caf50' : '#ff9500'}; padding:2px 6px; border-radius:4px; font-weight:700; white-space:nowrap; margin-left: 10px;">
-                        ${task.date}
-                    </span>
+            <div style="padding: 12px; width: 100%; box-sizing: border-box;">
+                <div style="font-size: 11px; font-weight: 700; color: ${task.completed ? '#4caf50' : '#ff9500'}; text-transform: uppercase;">
+                    ${task.date} @ ${task.time} ${task.completed ? '✓' : ''}
                 </div>
-                <p style="margin: 0; font-size:12px; color:#666;">
-                    Lead: <strong>${task.belongsTo}</strong> • Time: ${task.time || 'N/A'}
-                </p>
+                <div style="font-weight: 700; font-size: 16px; margin: 4px 0; color: #333;">
+                    ${task.description}
+                </div>
+                <div style="font-size: 13px; color: #666;">
+                    Lead: <span style="color: var(--teal-primary); font-weight: 600;">${task.belongsTo}</span>
+                </div>
             </div>
-            <button onclick="event.stopPropagation(); toggleTaskComplete(${task.belongsToId}, ${task.id})" 
-                    style="background:none; border:none; padding:10px; cursor:pointer; color: ${task.completed ? '#4caf50' : '#ccc'};">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-            </button>
         `;
         container.appendChild(card);
     });
@@ -835,26 +837,42 @@ setInterval(() => {
 renderLeads();
 updateNotifUI();
 
-// 10. AUTHENTICATION & SIGN UP LOGIC
+// --- 10. AUTHENTICATION & UI LOGIC ---
+
 let isSignUpMode = true;
 
+// 10a. Auth State Observer (Controls Splash Screen & Data Sync)
 auth.onAuthStateChanged((user) => {
+    const splash = document.getElementById('splash-screen');
     const authScreen = document.getElementById('auth-screen');
+
     if (user) {
-        authScreen.style.display = 'none';
-        // Fetch initials from Firestore to update the UI
-        db.collection("users").doc(user.uid).get().then((doc) => {
-            if (doc.exists) {
-                updateTopRightAvatar(doc.data().initials);
-            }
-        });
-        // syncLeadsFromServer(); // We will build this next
+        // User is Logged In
+        if (authScreen) authScreen.style.display = 'none';
+        
+        // Start Live Cloud Sync
+        if (typeof syncLeadsFromServer === "function") {
+            syncLeadsFromServer();
+        }
+
+        // Update all initials displays (Main page, Detail pages, etc.)
+        updateUserInitials(user); 
+
     } else {
-        authScreen.style.display = 'flex';
-        setAuthMode('login'); 
+        // User is Logged Out
+        if (authScreen) {
+            authScreen.style.display = 'flex';
+            setAuthMode('login');
+        }
     }
+
+    // Always hide splash screen after auth check
+    setTimeout(() => {
+        if (splash) splash.classList.add('fade-out');
+    }, 3000);
 });
 
+// 10b. Toggle between Login and Sign Up UI
 function setAuthMode(mode) {
     isSignUpMode = (mode === 'signup');
     
@@ -863,8 +881,6 @@ function setAuthMode(mode) {
     const btn = document.getElementById('auth-button');
     const toggleText = document.getElementById('auth-toggle-text');
     const toggleLink = document.getElementById('auth-toggle-link');
-    
-    // Elements to toggle
     const nameFields = document.getElementById('auth-name-fields');
     const forgotArea = document.getElementById('forgot-password-area');
 
@@ -874,18 +890,16 @@ function setAuthMode(mode) {
         btn.innerText = "Sign Up";
         toggleText.innerText = "Already have an account?";
         toggleLink.innerText = "Log In";
-        
-        nameFields.style.display = "block";  // Show Names
-        forgotArea.style.display = "none";    // Hide Forgot Password
+        nameFields.style.display = "block";
+        forgotArea.style.display = "none";
     } else {
         title.innerText = "Welcome Back";
         subtitle.innerText = "Log in to manage your leads";
         btn.innerText = "Log In";
         toggleText.innerText = "Don't have an account?";
         toggleLink.innerText = "Sign Up";
-        
-        nameFields.style.display = "none";   // Hide Names
-        forgotArea.style.display = "block";  // Show Forgot Password
+        nameFields.style.display = "none";
+        forgotArea.style.display = "block";
     }
 }
 
@@ -893,7 +907,7 @@ function toggleAuthMode() {
     setAuthMode(isSignUpMode ? 'login' : 'signup');
 }
 
-// UPGRADED handleAuthAction (Firebase Version)
+// 10c. Handle Sign Up and Log In Actions
 async function handleAuthAction() {
     const email = document.getElementById('auth-username').value.trim();
     const pass = document.getElementById('auth-password').value;
@@ -911,21 +925,25 @@ async function handleAuthAction() {
         setTimeout(() => authBtn.style.transform = "translateX(0)", 100);
     };
 
-    if (isSignUpMode) {
-        const firstName = document.getElementById('auth-first-name').value.trim();
-        const lastName = document.getElementById('auth-last-name').value.trim();
+    try {
+        if (isSignUpMode) {
+            const firstName = document.getElementById('auth-first-name').value.trim();
+            const lastName = document.getElementById('auth-last-name').value.trim();
 
-        if (!email || !pass || !firstName || !lastName) {
-            triggerError("Please fill in all fields.");
-            return;
-        }
+            if (!email || !pass || !firstName || !lastName) {
+                triggerError("Please fill in all fields.");
+                return;
+            }
 
-        try {
-            // 1. Create account in Firebase Auth
             const userCredential = await auth.createUserWithEmailAndPassword(email, pass);
             const user = userCredential.user;
 
-            // 2. Save profile details to Firestore
+            // Save Name to Auth Profile
+            await user.updateProfile({
+                displayName: `${firstName} ${lastName}`
+            });
+
+            // Save extra details to Firestore
             const initials = (firstName[0] + lastName[0]).toUpperCase();
             await db.collection("users").doc(user.uid).set({
                 firstName: firstName,
@@ -935,84 +953,96 @@ async function handleAuthAction() {
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
 
+            updateUserInitials(user);
             showToast(`Welcome, ${firstName}!`);
-        } catch (error) {
-            triggerError(error.message);
-        }
-    } else {
-        // --- LOGIN MODE ---
-        try {
+        } else {
             await auth.signInWithEmailAndPassword(email, pass);
             showToast("Welcome back!");
-        } catch (error) {
-            triggerError("Invalid login details.");
         }
+    } catch (error) {
+        triggerError(error.message);
     }
 }
 
-function updateTopRightAvatar(initials) {
+// 10d. Global Avatar Update (Updates every "JS" circle in the app)
+function updateUserInitials(user) {
     const avatarElements = document.querySelectorAll('.user-initials-display');
+    let initials = "??";
+
+    if (user && user.displayName) {
+        // Split by space and remove empty strings caused by extra spaces
+        const names = user.displayName.trim().split(/\s+/).filter(Boolean);
+        
+        if (names.length >= 2) {
+            // Take first letter of first name and first letter of last name
+            initials = (names[0][0] + names[names.length - 1][0]).toUpperCase();
+        } else if (names.length === 1) {
+            // If only one name exists, take the first two letters or just the first
+            initials = names[0].substring(0, 1).toUpperCase();
+        }
+    } else if (user && user.email) {
+        initials = user.email[0].toUpperCase();
+    }
+
     avatarElements.forEach(el => {
         el.innerText = initials;
     });
 }
 
-// This is what your Avatar button calls
+// 10e. Profile Settings Logic
 function openProfilePage() {
     showScreen('settings-screen');
 }
 
-// This actually draws the content
 async function renderSettingsContent() {
     const user = auth.currentUser;
     const container = document.getElementById('settings-screen');
     if (!user || !container) return;
 
-    // Get the latest data from the Cloud
     const userDoc = await db.collection("users").doc(user.uid).get();
-    const data = userDoc.data();
+    const data = userDoc.data() || { firstName: "", lastName: "", initials: "" };
 
     container.innerHTML = `
         <header class="teal-header" style="min-height: auto; padding: 12px 20px 10px;">
             <div class="header-top" style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 5px;">
-                <button onclick="showScreen('pipeline-screen')" style="background:none; border:none; color:white; cursor:pointer; padding: 0; display: flex; align-items: center;">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="square">
+                <button onclick="showScreen('pipeline-screen')" style="background:none; border:none; color:white; cursor:pointer; padding: 0;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3">
                         <path d="M19 12H5M11 18l-6-6 6-6"/>
                     </svg>
                 </button>
-                <div class="user-profile-mini user-initials-display" style="margin: 0; width: 30px; height: 30px; font-size: 12px;">${data.initials}</div>
+                <div class="user-initials-display">${data.initials || '??'}</div>
             </div>
             <div class="page-identity">
-                <h2 style="margin: 0; font-size: 14px; font-weight: 600; color: rgba(255, 255, 255, 0.85); letter-spacing: 1px;">User Settings</h2>
+                <h2 style="margin: 0; font-size: 14px; color: rgba(255, 255, 255, 0.85); text-transform: uppercase; letter-spacing: 1px;">User Settings</h2>
             </div>
         </header>
 
         <main class="content" style="padding: 20px;">
-            <div class="profile-card" style="text-align: left; padding: 25px 20px; background: white; border-radius: 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.04); border: 1px solid #f0f0f0;">
+            <div class="settings-card">
+                <div class="settings-group">
+                    <label>First Name</label>
+                    <input type="text" id="edit-firstName" value="${data.firstName || ''}" class="settings-input">
+                </div>
+
+                <div class="settings-group">
+                    <label>Last Name</label>
+                    <input type="text" id="edit-lastName" value="${data.lastName || ''}" class="settings-input">
+                </div>
+
+                <div class="settings-group">
+                    <label>Email Address</label>
+                    <input type="text" value="${user.email}" disabled class="settings-input">
+                </div>
+
+                <button onclick="updateUserProfile()" class="save-btn" style="margin-top: 10px; width: 100%;">Update Profile</button>
                 
-                <label style="font-size: 11px; font-weight: 700; color: #aaa; text-transform: uppercase;">First Name</label>
-                <input type="text" id="edit-firstName" value="${data.firstName}" style="margin-bottom: 15px; border-bottom: 2px solid #f0f0f0; border-top:none; border-left:none; border-right:none; border-radius:0; padding: 8px 0; width:100%;">
-
-                <label style="font-size: 11px; font-weight: 700; color: #aaa; text-transform: uppercase;">Last Name</label>
-                <input type="text" id="edit-lastName" value="${data.lastName}" style="margin-bottom: 15px; border-bottom: 2px solid #f0f0f0; border-top:none; border-left:none; border-right:none; border-radius:0; padding: 8px 0; width:100%;">
-
-                <label style="font-size: 11px; font-weight: 700; color: #aaa; text-transform: uppercase;">Email Address</label>
-                <input type="text" value="${user.email}" disabled style="margin-bottom: 25px; border-bottom: 2px solid #f0f0f0; border-top:none; border-left:none; border-right:none; border-radius:0; padding: 8px 0; width:100%; color: #ccc;">
-
-                <button onclick="updateUserProfile()" class="save-btn" style="margin-bottom: 15px;">Update Profile</button>
-                
-                <button onclick="logout()" style="width: 100%; padding: 15px; background: #fff; color: #ff3b30; border: 1px solid #ff3b30; border-radius: 12px; font-weight: 700; font-size: 15px; cursor: pointer;">
+                <button onclick="logout()" style="width: 100%; padding: 15px; background: none; color: #ff3b30; border: 1px solid #ff3b30; border-radius: 12px; margin-top:15px; font-weight: 700;">
                     Logout
                 </button>
             </div>
-            <p style="text-align: center; color: #ccc; font-size: 11px; margin-top: 30px; letter-spacing: 0.5px;">CLOSED LOOP CRM v1.0.5</p>
+            <p style="text-align: center; color: #ccc; font-size: 11px; margin-top: 30px;">CLOSED LOOP CRM v1.0.5</p>
         </main>
     `;
-}
-function logout() {
-    auth.signOut().then(() => {
-        window.location.reload();
-    });
 }
 
 async function updateUserProfile() {
@@ -1021,7 +1051,6 @@ async function updateUserProfile() {
     const newLastName = document.getElementById('edit-lastName').value.trim();
 
     if (!newFirstName || !newLastName || !user) return;
-
     const initials = (newFirstName[0] + newLastName[0]).toUpperCase();
 
     try {
@@ -1030,30 +1059,22 @@ async function updateUserProfile() {
             lastName: newLastName,
             initials: initials
         });
-        showToast("Profile Updated in Cloud!");
-        updateTopRightAvatar(initials);
+        await user.updateProfile({ displayName: `${newFirstName} ${newLastName}` });
+        updateUserInitials(user);
+        showToast("Profile Updated!");
     } catch (error) {
-        showToast("Error updating profile");
+        showToast("Update failed.");
     }
 }
 
-window.handleForgotPassword = function() {
-    const emailInput = document.getElementById('auth-username');
-    const email = emailInput ? emailInput.value.trim() : "";
-    
-    if (!email) {
-        console.log("No email found, attempting toast...");
-        showToast("Please enter your email first");
-        return;
-    }
+function logout() {
+    auth.signOut().then(() => window.location.reload());
+}
 
+window.handleForgotPassword = function() {
+    const email = document.getElementById('auth-username').value.trim();
+    if (!email) return showToast("Enter your email first");
     auth.sendPasswordResetEmail(email)
-        .then(() => {
-            console.log("Reset success, attempting toast...");
-            showToast("Reset link sent to your email!");
-        })
-        .catch((error) => {
-            console.error("Firebase Error:", error.code);
-            showToast("Error: " + error.message);
-        });
+        .then(() => showToast("Reset link sent!"))
+        .catch(err => showToast("Error: " + err.message));
 };
