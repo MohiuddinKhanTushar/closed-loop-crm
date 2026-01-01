@@ -745,6 +745,10 @@ function handleDateClick(dateString) {
     const listContainer = document.getElementById('calendar-task-list');
     const dateHeader = document.getElementById('calendar-modal-date');
 
+    listContainer.style.maxHeight = '300px'; // Limits the height of the list
+    listContainer.style.overflowY = 'auto'; // Enables scrolling
+    listContainer.style.paddingRight = '5px'; // Prevents scrollbar from overlapping text
+
     dateHeader.innerText = `Tasks for ${new Date(dateString).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
     
     listContainer.innerHTML = tasksForDay.map(task => `
