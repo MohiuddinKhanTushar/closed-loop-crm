@@ -850,3 +850,36 @@ input, select, textarea {
 #activity-log {
     padding-bottom: 50px; /* Extra space at the bottom */
 }
+
+.roi-stat-card {
+    background: white;
+    padding: 15px;
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    border-top: 4px solid var(--teal-primary);
+}
+.roi-stat-card small {
+    color: #666;
+    text-transform: uppercase;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+.roi-stat-card h2 {
+    margin: 5px 0 0;
+    font-size: 20px;
+    color: #333;
+}
+.roi-chart-card {
+    background: white;
+    padding: 20px;
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    margin-bottom: 20px;
+}
+.roi-chart-card h3 {
+    margin: 0 0 15px;
+    font-size: 14px;
+    color: #333;
+    text-transform: uppercase;
+}

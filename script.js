@@ -75,6 +75,7 @@ function showScreen(screenId) {
         // Trigger logic based on which screen opened
         if(screenId === 'pipeline-screen') renderLeads();
         if(screenId === 'tasks-screen') renderAllTasks();
+        if(screenId === 'roi-screen') renderROI();
         if(screenId === 'settings-screen') renderSettingsContent(); // Changed name to avoid conflict
     }
 }
@@ -1156,4 +1157,68 @@ function syncLeadsFromServer() {
     }, (error) => {
         console.error("Cloud Sync Error:", error);
     });
+}
+
+function renderROI() {
+    const pipelineEl = document.getElementById('roi-pipeline-total');
+    const revenueEl = document.getElementById('roi-revenue-total');
+    const winRateEl = document.getElementById('roi-win-rate');
+    const sourceListEl = document.getElementById('roi-source-list');
+
+    if (!pipelineEl) return;
+
+    let totalPipelineValue = 0;
+    let totalWonValue = 0;
+    let wonCount = 0;
+    let totalLeads = leads.length;
+
+    // Track revenue by source
+    const sourceData = {};
+
+    leads.forEach(lead => {
+        const val = parseFloat(lead.value) || 0;
+        
+        // 1. Calculate Pipeline vs Won
+        if (lead.status === 'Won') {
+            totalWonValue += val;
+            wonCount++;
+        } else if (lead.status !== 'Lost') {
+            totalPipelineValue += val;
+        }
+
+        // 2. Track Revenue by Source (only for Won leads)
+        if (lead.status === 'Won' && lead.source) {
+            sourceData[lead.source] = (sourceData[lead.source] || 0) + val;
+        }
+    });
+
+    // Update UI Labels
+    pipelineEl.innerText = `£${totalPipelineValue.toLocaleString()}`;
+    revenueEl.innerText = `£${totalWonValue.toLocaleString()}`;
+    
+    const winRate = totalLeads > 0 ? Math.round((wonCount / totalLeads) * 100) : 0;
+    winRateEl.innerText = `${winRate}%`;
+
+    // Render Source Breakdown
+    sourceListEl.innerHTML = '';
+    const sortedSources = Object.entries(sourceData).sort((a, b) => b[1] - a[1]);
+
+    sortedSources.forEach(([source, value]) => {
+        const percentage = totalWonValue > 0 ? (value / totalWonValue) * 100 : 0;
+        sourceListEl.innerHTML += `
+            <div style="margin-bottom: 12px;">
+                <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px;">
+                    <span style="font-weight: 600;">${source}</span>
+                    <span style="color: #666;">£${value.toLocaleString()}</span>
+                </div>
+                <div style="width: 100%; height: 8px; background: #eee; border-radius: 4px; overflow: hidden;">
+                    <div style="width: ${percentage}%; height: 100%; background: var(--teal-primary);"></div>
+                </div>
+            </div>
+        `;
+    });
+
+    if (sortedSources.length === 0) {
+        sourceListEl.innerHTML = '<p style="color:#999; font-size:12px; text-align:center;">No "Won" leads to analyze yet.</p>';
+    }
 }
