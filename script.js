@@ -323,8 +323,47 @@ function closeValidationModal() {
 }
 
 // 7. DATA PERSISTENCE & SYNC
-function saveData() { 
+
+// NEW: This function pulls data from the cloud
+function syncLeadsFromServer() {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    db.collection("leads")
+      .where("userId", "==", user.uid)
+      .onSnapshot((snapshot) => {
+        if (!snapshot.empty) {
+            leads = snapshot.docs.map(doc => ({
+                ...doc.data(),
+                id: doc.id 
+            }));
+            localStorage.setItem('myLeads', JSON.stringify(leads));
+            renderLeads();
+            console.log("Cloud Sync: " + leads.length + " leads loaded.");
+        }
+    }, (error) => {
+        console.error("Sync error:", error);
+    });
+}
+
+// UPGRADED: This saves to both LocalStorage and Firebase
+async function saveData() { 
     localStorage.setItem('myLeads', JSON.stringify(leads)); 
+
+    const user = auth.currentUser;
+    if (user) {
+        const batch = db.batch();
+        leads.forEach(lead => {
+            lead.userId = user.uid; 
+            const docRef = db.collection("leads").doc(lead.id.toString());
+            batch.set(docRef, lead, { merge: true });
+        });
+        try {
+            await batch.commit();
+        } catch (err) {
+            console.error("Cloud save failed:", err);
+        }
+    }
 }
 
 const leadForm = document.getElementById('lead-form');
@@ -751,12 +790,7 @@ function renderAllTasks() {
         }
     });
 
-    // Sort: Newest/Upcoming first
-    allTasks.sort((a, b) => {
-        const dateTimeA = new Date(`${a.date} ${a.time || '00:00'}`);
-        const dateTimeB = new Date(`${b.date} ${b.time || '00:00'}`);
-        return dateTimeB - dateTimeA;
-    });
+    allTasks.sort((a, b) => new Date(`${b.date} ${b.time}`) - new Date(`${a.date} ${a.time}`));
 
     if (allTasks.length === 0) {
         container.innerHTML = '<p style="color:#888; text-align:center; padding:40px;">No scheduled tasks found.</p>';
@@ -765,32 +799,46 @@ function renderAllTasks() {
 
     allTasks.forEach(task => {
         const card = document.createElement('div');
-        // Use your existing class for styling
         card.className = 'lead-card'; 
-        card.style.marginBottom = '12px';
-        card.style.display = 'flex';
-        card.style.flexDirection = 'column'; // Stack info vertically
-        card.style.alignItems = 'flex-start';
-        card.style.borderLeft = `4px solid ${task.completed ? '#4caf50' : '#ff9500'}`;
-        if(task.completed) card.style.opacity = '0.7';
         
+        card.style.cssText = `
+            margin-bottom: 8px !important;
+            padding: 12px 15px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            border-left: 4px solid ${task.completed ? '#4caf50' : '#ff9500'} !important;
+            opacity: ${task.completed ? '0.7' : '1'};
+            min-height: auto !important;
+            cursor: pointer;
+        `;
+
+        // 1. MAIN CLICK: Open Profile
         card.onclick = () => {
             activeLeadId = task.belongsToId;
             openFullProfile();
         };
 
-        // This is the CLEAN HTML for a task, NOT a settings page
+        // 2. TICK CONTENT: We use an SVG that stays visible and acts as a button
+        const tickColor = task.completed ? '#4caf50' : '#ddd';
+        
         card.innerHTML = `
-            <div style="padding: 12px; width: 100%; box-sizing: border-box;">
-                <div style="font-size: 11px; font-weight: 700; color: ${task.completed ? '#4caf50' : '#ff9500'}; text-transform: uppercase;">
-                    ${task.date} @ ${task.time} ${task.completed ? '✓' : ''}
+            <div style="flex: 1;">
+                <div style="font-size: 10px; font-weight: 700; color: ${task.completed ? '#4caf50' : '#ff9500'}; text-transform: uppercase;">
+                    ${task.date} @ ${task.time}
                 </div>
-                <div style="font-weight: 700; font-size: 16px; margin: 4px 0; color: #333;">
+                <div style="font-weight: 700; font-size: 15px; color: #333; margin: 2px 0;">
                     ${task.description}
                 </div>
-                <div style="font-size: 13px; color: #666;">
+                <div style="font-size: 12px; color: #666;">
                     Lead: <span style="color: var(--teal-primary); font-weight: 600;">${task.belongsTo}</span>
                 </div>
+            </div>
+            <div onclick="event.stopPropagation(); toggleTaskComplete(${task.belongsToId}, ${task.id})" 
+                 style="padding: 10px; margin-right: -10px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="${tickColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
             </div>
         `;
         container.appendChild(card);
@@ -1078,3 +1126,30 @@ window.handleForgotPassword = function() {
         .then(() => showToast("Reset link sent!"))
         .catch(err => showToast("Error: " + err.message));
 };
+
+function syncLeadsFromServer() {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    // Listen to the "leads" collection for this specific user in real-time
+    db.collection("leads")
+      .where("userId", "==", user.uid)
+      .onSnapshot((snapshot) => {
+        // Map the Firebase documents into your 'leads' array
+        leads = snapshot.docs.map(doc => ({
+            id: doc.id, // Firebase document ID
+            ...doc.data()
+        }));
+        
+        // Save to localStorage as a backup for offline mode
+        saveData(); 
+        
+        // Refresh the UI
+        renderLeads();
+        if (document.getElementById('tasks-screen').style.display === 'block') renderAllTasks();
+        
+        console.log("Cloud Sync: Success");
+    }, (error) => {
+        console.error("Cloud Sync Error:", error);
+    });
+}

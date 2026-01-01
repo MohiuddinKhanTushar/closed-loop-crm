@@ -176,9 +176,17 @@ body {
 
 /* --- LEAD CARDS --- */
 .content {
-    padding-bottom: 100px;
-    padding-top: 10px;
-    min-height: calc(100vh - 180px);
+    /* Subtract the header height + a little extra for breathing room */
+    height: calc(100vh - 110px); 
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch; /* Momentum scrolling for iOS */
+    padding: 20px;
+    /* This ensures the scroll ends well AFTER the last card */
+    padding-bottom: 100px !important; 
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
 }
 
 .lead-card-container {
