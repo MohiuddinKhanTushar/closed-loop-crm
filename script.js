@@ -21,20 +21,6 @@ db.enablePersistence().catch((err) => {
     console.error("Persistence error:", err.code);
 });
 
-// This runs automatically whenever a user logs in or out
-auth.onAuthStateChanged((user) => {
-    const authScreen = document.getElementById('auth-screen');
-    
-    if (user) {
-        // User is logged in! 
-        console.log("Logged in as:", user.email);
-        authScreen.style.display = 'none'; // Hide login
-        syncLeadsFromServer();             // Start getting their leads
-    } else {
-        // No user is logged in
-        authScreen.style.display = 'flex'; // Show login
-    }
-});
 
 // 1. DATA SETUP & STATE
 let currentFilter = 'New';
@@ -244,14 +230,13 @@ function renderLeads() {
     });
 }
 
-function filterLeads(stage) {
+function filterLeads(stage, el) {
     currentFilter = stage;
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    if (event && event.target && event.target.classList.contains('tab')) {
-        event.target.classList.add('active');
-    }
+    if (el) el.classList.add('active');
     renderLeads();
 }
+
 
 function openLeadDetail(id) {
     activeLeadId = id;
@@ -325,74 +310,49 @@ function closeValidationModal() {
 
 // 7. DATA PERSISTENCE & SYNC
 
-// NEW: This function pulls data from the cloud
-function syncLeadsFromServer() {
-    const user = auth.currentUser;
-    if (!user) return;
-
-    db.collection("leads")
-      .where("userId", "==", user.uid)
-      .onSnapshot((snapshot) => {
-        if (!snapshot.empty) {
-            leads = snapshot.docs.map(doc => ({
-                ...doc.data(),
-                id: doc.id 
-            }));
-            localStorage.setItem('myLeads', JSON.stringify(leads));
-            renderLeads();
-            console.log("Cloud Sync: " + leads.length + " leads loaded.");
-        }
-    }, (error) => {
-        console.error("Sync error:", error);
-    });
-}
-
 // UPGRADED: This saves to both LocalStorage and Firebase
 async function saveData() { 
     localStorage.setItem('myLeads', JSON.stringify(leads)); 
-
     const user = auth.currentUser;
     if (user) {
         const batch = db.batch();
         leads.forEach(lead => {
             lead.userId = user.uid; 
+            // Ensure ID is a string for Firestore document reference
             const docRef = db.collection("leads").doc(lead.id.toString());
             batch.set(docRef, lead, { merge: true });
         });
-        try {
-            await batch.commit();
-        } catch (err) {
-            console.error("Cloud save failed:", err);
-        }
+        await batch.commit().catch(err => console.error("Cloud save failed:", err));
     }
 }
 
 const leadForm = document.getElementById('lead-form');
 if(leadForm) {
-    leadForm.addEventListener('submit', function(e) {
+    leadForm.addEventListener('submit', async function(e) {
         e.preventDefault();
-        const phone = document.getElementById('lead-phone').value;
-        const email = document.getElementById('lead-email').value;
+        const user = auth.currentUser;
+        if(!user) return;
 
-        if ((phone !== "" && !validatePhone(phone)) || (email !== "" && !validateEmail(email))) {
-            openValidationModal("The phone or email format is incorrect. Please check and try again.");
-            return;
-        }
+        // Create a reference to get a clean Firestore ID immediately
+        const newLeadRef = db.collection("leads").doc();
 
-        leads.push({
-            id: Date.now(),
+        const newLead = {
+            id: newLeadRef.id, // Fix 3: Unified String ID
+            userId: user.uid,
             name: document.getElementById('lead-name').value,
             company: document.getElementById('lead-company').value,
             source: document.getElementById('lead-source').value,
             value: document.getElementById('lead-value').value,
-            phone: phone,
-            email: email,
+            phone: document.getElementById('lead-phone').value,
+            email: document.getElementById('lead-email').value,
             status: 'New',
             activities: [],
             notes: "",
             address: ""
-        });
-        saveData();
+        };
+
+        leads.push(newLead);
+        await saveData();
         renderLeads();
         this.reset();
         closeModal();
@@ -795,7 +755,7 @@ function renderAllTasks() {
         }
     });
 
-    allTasks.sort((a, b) => new Date(`${b.date} ${b.time}`) - new Date(`${a.date} ${a.time}`));
+    allTasks.sort((a, b) => new Date(b.taskTimestamp) - new Date(a.taskTimestamp));
 
     if (allTasks.length === 0) {
         container.innerHTML = '<p style="color:#888; text-align:center; padding:40px;">No scheduled tasks found.</p>';
@@ -1152,28 +1112,26 @@ function syncLeadsFromServer() {
     const user = auth.currentUser;
     if (!user) return;
 
-    // Listen to the "leads" collection for this specific user in real-time
     db.collection("leads")
       .where("userId", "==", user.uid)
       .onSnapshot((snapshot) => {
-        // Map the Firebase documents into your 'leads' array
         leads = snapshot.docs.map(doc => ({
-            id: doc.id, // Firebase document ID
+            id: doc.id,
             ...doc.data()
         }));
-        
-        // Save to localStorage as a backup for offline mode
-        saveData(); 
-        
-        // Refresh the UI
+
+        // Local cache only
+        localStorage.setItem('myLeads', JSON.stringify(leads));
+
         renderLeads();
-        if (document.getElementById('tasks-screen').style.display === 'block') renderAllTasks();
-        
+        if (document.getElementById('tasks-screen')?.style.display === 'block') {
+            renderAllTasks();
+        }
+
         console.log("Cloud Sync: Success");
-    }, (error) => {
-        console.error("Cloud Sync Error:", error);
-    });
+    }, console.error);
 }
+
 
 function renderROI() {
     const pipelineEl = document.getElementById('roi-pipeline-total');

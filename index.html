@@ -74,10 +74,11 @@
         <h2 id="current-screen-title">Pipeline</h2>
     </div>
     <div class="stage-tabs">
-        <button class="tab active" onclick="filterLeads('New')">New</button>
-        <button class="tab" onclick="filterLeads('In-Progress')">In-Progress</button>
-        <button class="tab" onclick="filterLeads('Won')">Won</button>
-    </div>
+    <button class="tab active" onclick="filterLeads('New', this)">New</button>
+    <button class="tab" onclick="filterLeads('In-Progress', this)">In-Progress</button>
+    <button class="tab" onclick="filterLeads('Won', this)">Won</button>
+</div>
+
 </header>
 
         <main class="content">
