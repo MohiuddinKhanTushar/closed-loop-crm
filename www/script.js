@@ -8,19 +8,43 @@ const firebaseConfig = {
     appId: "1:770921103170:web:2b642ed99e03bc3f4ad2db"
 };
 
-// 2. Initialize
+// INITIALIZE GLOBALLY (Outside of any functions)
 firebase.initializeApp(firebaseConfig);
-
-// 3. Shortcuts (These are what we will use in our functions)
-const auth = firebase.auth();
 const db = firebase.firestore();
+const auth = firebase.auth();
 
-// 4. Offline Persistence (Vital for Mobile Apps)
-// This lets the CRM work even when the user has no signal
-db.enablePersistence().catch((err) => {
-    console.error("Persistence error:", err.code);
+// 2. Wait for Device Ready to prevent SIGSEGV
+window.addEventListener('DOMContentLoaded', () => {
+    
+    // Update: This is the modern replacement for the old persistence warning
+    setTimeout(() => {
+        db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
+            if (err.code == 'failed-precondition') {
+                console.warn("Persistence failed: Multiple tabs open.");
+            } else if (err.code == 'unimplemented') {
+                console.warn("Persistence not supported by this browser.");
+            }
+        });
+    }, 1000);
+
+    setupCapacitor();
 });
 
+
+
+// 3. Status Bar & Splash Screen Fix
+async function setupCapacitor() {
+    if (window.Capacitor) {
+        const { StatusBar } = Capacitor.Plugins;
+        try {
+            // This fixes the "Superimposed" issue by giving the status bar a solid color
+            await StatusBar.setBackgroundColor({ color: '#008080' }); // Your Teal Primary
+            await StatusBar.setOverlaysWebView({ overlay: false });
+        } catch (e) {
+            console.log("StatusBar not available");
+        }
+    }
+}
 
 // 1. DATA SETUP & STATE
 let currentFilter = 'New';
@@ -308,21 +332,40 @@ function closeValidationModal() {
     document.getElementById('validation-modal').style.display = 'none';
 }
 
-// 7. DATA PERSISTENCE & SYNC
-
-// UPGRADED: This saves to both LocalStorage and Firebase
+// 7. DATA PERSISTENCE & SYNC (Optimized for Mobile)
 async function saveData() { 
+    // 1. Instant Local Save (Keeps UI snappy)
     localStorage.setItem('myLeads', JSON.stringify(leads)); 
-    const user = auth.currentUser;
-    if (user) {
-        const batch = db.batch();
+
+    // 2. Background Cloud Sync
+    const user = firebase.auth().currentUser;
+    if (!user) {
+        console.log("Not logged in: Skipping cloud sync.");
+        return;
+    }
+
+    try {
+        const batch = firebase.firestore().batch();
+        
         leads.forEach(lead => {
+            // Ensure every lead has the owner's ID
             lead.userId = user.uid; 
-            // Ensure ID is a string for Firestore document reference
-            const docRef = db.collection("leads").doc(lead.id.toString());
+            
+            // Convert numeric IDs to strings for Firestore compatibility
+            const leadIdStr = lead.id.toString();
+            const docRef = firebase.firestore().collection("leads").doc(leadIdStr);
+            
             batch.set(docRef, lead, { merge: true });
         });
-        await batch.commit().catch(err => console.error("Cloud save failed:", err));
+
+        // Use 'await' to ensure the batch completes, but catch errors
+        // so a network failure doesn't crash the whole script.
+        await batch.commit();
+        console.log("Cloud sync successful.");
+    } catch (err) {
+        console.error("Cloud save failed (Device may be offline):", err);
+        // We don't alert the user here because Offline Persistence 
+        // will handle it once they reconnect.
     }
 }
 
@@ -330,14 +373,19 @@ const leadForm = document.getElementById('lead-form');
 if(leadForm) {
     leadForm.addEventListener('submit', async function(e) {
         e.preventDefault();
-        const user = auth.currentUser;
-        if(!user) return;
+        
+        // 1. Use the full reference for safety
+        const user = firebase.auth().currentUser; 
+        if(!user) {
+            showToast("Please log in to add leads.");
+            return;
+        }
 
-        // Create a reference to get a clean Firestore ID immediately
-        const newLeadRef = db.collection("leads").doc();
+        // 2. Use the full reference for the ID generator
+        const newLeadRef = firebase.firestore().collection("leads").doc();
 
         const newLead = {
-            id: newLeadRef.id, // Fix 3: Unified String ID
+            id: newLeadRef.id, 
             userId: user.uid,
             name: document.getElementById('lead-name').value,
             company: document.getElementById('lead-company').value,
@@ -358,7 +406,6 @@ if(leadForm) {
         closeModal();
     });
 }
-
 function updateLeadContact() {
     const idx = leads.findIndex(l => l.id === activeLeadId);
     if (idx !== -1) {
@@ -695,7 +742,7 @@ function handleDateClick(dateString) {
 
     // If only one task, go straight to lead
     if (tasksForDay.length === 1) {
-        activeLeadId = tasksForDay[0].leadId; // Ensure this is set!
+        activeLeadId = tasksForDay[0].toString(); // Ensure this is set!
         closeCalendar();
         openFullProfile();
         return;
@@ -855,7 +902,7 @@ updateNotifUI();
 let isSignUpMode = true;
 
 // 10a. Auth State Observer (Controls Splash Screen & Data Sync)
-auth.onAuthStateChanged((user) => {
+firebase.auth().onAuthStateChanged((user) => {
     const splash = document.getElementById('splash-screen');
     const authScreen = document.getElementById('auth-screen');
 
@@ -881,8 +928,11 @@ auth.onAuthStateChanged((user) => {
 
     // Always hide splash screen after auth check
     setTimeout(() => {
-        if (splash) splash.classList.add('fade-out');
-    }, 3000);
+        if (splash) {
+            splash.style.opacity = '0';
+            setTimeout(() => splash.style.display = 'none', 500);
+        }
+    }, 1500); // Reduced from 3000ms
 });
 
 // 10b. Toggle between Login and Sign Up UI
@@ -948,7 +998,7 @@ async function handleAuthAction() {
                 return;
             }
 
-            const userCredential = await auth.createUserWithEmailAndPassword(email, pass);
+            const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, pass);
             const user = userCredential.user;
 
             // Save Name to Auth Profile
@@ -1109,7 +1159,7 @@ window.handleForgotPassword = function() {
 };
 
 function syncLeadsFromServer() {
-    const user = auth.currentUser;
+    const user = firebase.auth().currentUser;
     if (!user) return;
 
     db.collection("leads")
