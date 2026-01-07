@@ -1,0 +1,27 @@
+{
+  "name": "closed-loop-crm",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MohiuddinKhanTushar/closed-loop-crm.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/MohiuddinKhanTushar/closed-loop-crm/issues"
+  },
+  "homepage": "https://github.com/MohiuddinKhanTushar/closed-loop-crm#readme",
+  "dependencies": {
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/cli": "^8.0.0",
+    "@capacitor/core": "^8.0.0",
+    "@capacitor/status-bar": "^8.0.0"
+  }
+}

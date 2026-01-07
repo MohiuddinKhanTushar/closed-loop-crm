@@ -1,0 +1,12 @@
+# Dependencies
+node_modules/
+
+# Native Platforms (Capacitor generates these)
+android/
+ios/
+
+# Logs and system files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store

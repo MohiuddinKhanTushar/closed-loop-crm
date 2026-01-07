@@ -7,6 +7,22 @@
     --gray-light: #eee;
     --red-delete: #ff3b30;
     --red-bg: #fff5f5;
+    --status-bar-height: 35px;
+}
+
+/* Pushes the main header down */
+.teal-header {
+    padding-top: var(--status-bar-height) !important;
+}
+
+/* Pushes the side menu branding down */
+.side-menu-brand {
+    padding-top: var(--status-bar-height) !important;
+}
+
+/* Adjusts the scrollable area so it doesn't get cut off at the bottom */
+.content {
+    height: calc(100vh - (110px + var(--status-bar-height))) !important;
 }
 
 body {
@@ -15,13 +31,19 @@ body {
     padding: 0;
     color: var(--text-dark);
     font-family: system-ui, -apple-system, sans-serif;
-    
-    /* FIX: Prevents the whole browser window from scrolling */
     width: 100vw;
     height: 100vh;
     overflow: hidden; 
     position: fixed;
+    /* Removed visibility: hidden from here so Splash Screen can show */
 }
+
+/* 1. Hide screens ONLY while the app is still 'loading' */
+body:not(.app-ready) .screen, 
+body:not(.app-ready) #auth-screen {
+    display: none !important;
+}
+
 
 /* --- HEADER & BRANDING --- */
 /* --- GRADIENT HEADER (Dark to Primary) --- */

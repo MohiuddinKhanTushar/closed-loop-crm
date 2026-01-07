@@ -8,40 +8,43 @@ const firebaseConfig = {
     appId: "1:770921103170:web:2b642ed99e03bc3f4ad2db"
 };
 
-// INITIALIZE GLOBALLY (Outside of any functions)
+// 1. INITIALIZE GLOBALLY
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 
-// 2. Wait for Device Ready to prevent SIGSEGV
-window.addEventListener('DOMContentLoaded', () => {
-    
-    // Update: This is the modern replacement for the old persistence warning
-    setTimeout(() => {
-        db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
-            if (err.code == 'failed-precondition') {
-                console.warn("Persistence failed: Multiple tabs open.");
-            } else if (err.code == 'unimplemented') {
-                console.warn("Persistence not supported by this browser.");
-            }
-        });
-    }, 1000);
+// 2. Enable Persistence IMMEDIATELY (No Timeout)
+db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
+    if (err.code == 'failed-precondition') {
+        console.warn("Persistence failed: Multiple tabs open.");
+    } else if (err.code == 'unimplemented') {
+        console.warn("Persistence not supported by this browser.");
+    }
+});
 
-    setupCapacitor();
+// 3. Wait for Device Ready
+window.addEventListener('DOMContentLoaded', () => {
+    // Wait for the native bridge to be ready before calling setupCapacitor
+    document.addEventListener('deviceready', () => {
+        setupCapacitor();
+    }, false);
 });
 
 
 
 // 3. Status Bar & Splash Screen Fix
 async function setupCapacitor() {
-    if (window.Capacitor) {
-        const { StatusBar } = Capacitor.Plugins;
-        try {
-            // This fixes the "Superimposed" issue by giving the status bar a solid color
-            await StatusBar.setBackgroundColor({ color: '#008080' }); // Your Teal Primary
-            await StatusBar.setOverlaysWebView({ overlay: false });
-        } catch (e) {
-            console.log("StatusBar not available");
+    if (Capacitor.isNativePlatform()) {
+        const StatusBar = Capacitor.Plugins.StatusBar;
+        if (StatusBar) {
+            try {
+                // This makes the Teal color go behind the clock
+                await StatusBar.setOverlaysWebView({ overlay: true });
+                // This makes the clock/battery icons white
+                await StatusBar.setStyle({ style: 'LIGHT' });
+            } catch (e) {
+                console.error("StatusBar error:", e);
+            }
         }
     }
 }
@@ -908,33 +911,34 @@ firebase.auth().onAuthStateChanged((user) => {
 
     if (user) {
         // User is Logged In
-        if (authScreen) authScreen.style.display = 'none';
+        if (authScreen) authScreen.style.setProperty('display', 'none', 'important');
         
-        // Start Live Cloud Sync
         if (typeof syncLeadsFromServer === "function") {
             syncLeadsFromServer();
         }
-
-        // Update all initials displays (Main page, Detail pages, etc.)
         updateUserInitials(user); 
 
     } else {
         // User is Logged Out
         if (authScreen) {
-            authScreen.style.display = 'flex';
+            authScreen.style.setProperty('display', 'flex', 'important');
             setAuthMode('login');
         }
     }
 
-    // Always hide splash screen after auth check
+    // Hide splash screen ONLY after logic has decided what to show
     setTimeout(() => {
+        // THE FIX: Unhide the app content right as we start fading the splash
+        document.body.classList.add('app-ready');
+
         if (splash) {
             splash.style.opacity = '0';
-            setTimeout(() => splash.style.display = 'none', 500);
+            setTimeout(() => {
+                splash.style.display = 'none';
+            }, 600);
         }
-    }, 1500); // Reduced from 3000ms
+    }, 2000); 
 });
-
 // 10b. Toggle between Login and Sign Up UI
 function setAuthMode(mode) {
     isSignUpMode = (mode === 'signup');
