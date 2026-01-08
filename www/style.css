@@ -132,7 +132,10 @@ body:not(.app-ready) #auth-screen {
     height: 100%;
     background: var(--bg-light);
     z-index: 3000;
-    padding: 20px;
+    padding-top: calc(env(safe-area-inset-top, 20px) + 15px);
+    padding-left: 20px;
+    padding-right: 20px;
+    padding-bottom: 20px;
     box-sizing: border-box;
 }
 
@@ -528,9 +531,19 @@ input, select, textarea {
     cursor: pointer;
 }
 
+/* Turns the box red */
 .invalid-input {
-    border-color: var(--red-delete) !important;
+    border: 2px solid #ff3b30 !important;
     background-color: #fff9f9 !important;
+}
+
+.error-message {
+    color: #ff3b30;
+    font-size: 11px;
+    font-weight: 600;
+    margin-top: -12px;
+    margin-bottom: 10px;
+    display: none; /* Hidden by default */
 }
 
 /* Activity History */
@@ -905,3 +918,4 @@ input, select, textarea {
     color: #333;
     text-transform: uppercase;
 }
+

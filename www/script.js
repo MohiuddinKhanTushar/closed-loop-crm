@@ -32,22 +32,73 @@ window.addEventListener('DOMContentLoaded', () => {
 
 
 
-// 3. Status Bar & Splash Screen Fix
+
+// 3. Status Bar, Splash Screen & Back Button Fix
+let lastBackPress = 0; 
+
 async function setupCapacitor() {
-    if (Capacitor.isNativePlatform()) {
-        const StatusBar = Capacitor.Plugins.StatusBar;
-        if (StatusBar) {
-            try {
-                // This makes the Teal color go behind the clock
-                await StatusBar.setOverlaysWebView({ overlay: true });
-                // This makes the clock/battery icons white
-                await StatusBar.setStyle({ style: 'LIGHT' });
-            } catch (e) {
-                console.error("StatusBar error:", e);
+    const Plugins = window.Capacitor.Plugins;
+    const { StatusBar, App } = Plugins;
+
+    // IMPORTANT: Clear any previous listeners to prevent double-firing
+    if (App) {
+        await App.removeAllListeners();
+
+        App.addListener('backButton', () => {
+            const now = Date.now();
+            if (now - lastBackPress < 500) return; 
+            lastBackPress = now;
+
+            console.log("Native Back Button Triggered");
+
+            const isVisible = (id) => {
+                const el = document.getElementById(id);
+                if (!el) return false;
+                const style = window.getComputedStyle(el);
+                return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
+            };
+            const isAddLeadOpen = isVisible('add-lead-modal');
+            const menu = document.getElementById('side-menu');
+            const isMenuOpen = menu && menu.classList.contains('open');
+            const isSearchOpen = isVisible('search-overlay');
+            const isDetailOpen = isVisible('lead-detail-screen');
+            const isCalendarOpen = isVisible('calendar-modal');
+            const isNotifOpen = isVisible('notif-modal');
+            const isAuthVisible = isVisible('auth-screen');
+            const isPipelineVisible = isVisible('pipeline-screen');
+
+            // Logic Tree
+            if (isMenuOpen) {
+                toggleMenu();
+            } else if (isSearchOpen) {
+                toggleSearch(false);
+            } else if (isAddLeadOpen) { // --- Add this condition ---
+                console.log("Closing Add Lead Modal");
+                closeModal();
+            } else if (isCalendarOpen) {
+                closeCalendar();
+            } else if (isNotifOpen) {
+                toggleNotifications();
+            } else if (isDetailOpen) {
+                closeDetail();
+            } else if (!isPipelineVisible && !isAuthVisible) {
+                showScreen('pipeline-screen');
+            } else {
+                // We are on the Home (Pipeline) screen, now we can exit
+                App.exitApp();
             }
-        }
+        });
+    }
+
+    if (StatusBar) {
+        try {
+            await StatusBar.setOverlaysWebView({ overlay: true });
+            await StatusBar.setStyle({ style: 'LIGHT' });
+        } catch (e) { console.error(e); }
     }
 }
+
+
 
 // 1. DATA SETUP & STATE
 let currentFilter = 'New';
@@ -125,10 +176,10 @@ function openFullProfile() {
 
 // 3. ACTIVITIES LOGIC
 function toggleTaskComplete(leadId, taskId) {
-    const lead = leads.find(l => l.id === leadId);
+    const lead = leads.find(l => l.id == leadId);
     if (!lead) return;
 
-    const task = lead.activities.find(a => a.id === taskId);
+    const task = lead.activities.find(a => a.id == taskId);
     if (task) {
         task.completed = !task.completed;
         saveData();
@@ -200,13 +251,14 @@ function renderActivities(lead) {
         const isCompleted = a.completed ? 'opacity: 0.6;' : '';
         const taskColor = a.completed ? '#4caf50' : '#ff9500';
 
+        // FIX: Added quotes around lead.id and a.id
         return `
             <div class="timeline-item" style="${isCompleted}">
                 <div class="timeline-dot" style="${isTask ? `background: ${taskColor};` : ''}"></div>
                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                     <div style="font-size: 11px; color: #999;">${a.timestamp}</div>
                     ${isTask ? `
-                        <button onclick="event.stopPropagation(); toggleTaskComplete(${lead.id}, ${a.id})" 
+                        <button onclick="event.stopPropagation(); toggleTaskComplete('${lead.id}', ${a.id})" 
                                 style="background:none; border:none; padding:0; cursor:pointer; color: ${a.completed ? '#4caf50' : '#ccc'};">
                             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                                 <polyline points="20 6 9 17 4 12"></polyline>
@@ -239,13 +291,14 @@ function renderLeads() {
         
         const companyInfo = lead.company ? `<span style="font-weight:600; color:var(--teal-primary)">${lead.company}</span> • ` : "";
         
+        // FIX: Added single quotes around lead.id in both onclicks
         cardWrapper.innerHTML = `
-            <div class="lead-card" onclick="openLeadDetail(${lead.id})">
+            <div class="lead-card" onclick="openLeadDetail('${lead.id}')">
                 <div class="card-info">
                     <h3>${lead.name}</h3>
                     <p>${companyInfo}${lead.source} • £${lead.value}</p>
                 </div>
-                <button class="delete-btn-inline" onclick="event.stopPropagation(); requestDelete(${lead.id})">
+                <button class="delete-btn-inline" onclick="event.stopPropagation(); requestDelete('${lead.id}')">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="3 6 5 6 21 6"></polyline>
                         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -278,14 +331,22 @@ function openLeadDetail(id) {
         phoneInput.value = lead.phone || '';
         emailInput.value = lead.email || '';
         
+        // CLEAR ERRORS WHEN OPENING NEW LEAD
         phoneInput.classList.remove('invalid-input');
         emailInput.classList.remove('invalid-input');
+        
+        // Hide existing error message texts if they exist
+        const pErr = document.getElementById('detail-phone-input-error-msg');
+        const eErr = document.getElementById('detail-email-input-error-msg');
+        if (pErr) pErr.style.display = 'none';
+        if (eErr) eErr.style.display = 'none';
         
         document.getElementById('lead-detail-screen').style.display = 'flex';
     }
 }
 
-// 5. DELETE LOGIC
+// --- 5. DELETE LOGIC ---
+
 function requestDelete(id) {
     activeLeadId = id;
     openDeleteModal();
@@ -293,6 +354,7 @@ function requestDelete(id) {
 
 function openDeleteModal() { 
     document.getElementById('delete-modal').style.display = 'flex'; 
+    // Re-bind the click handler to ensure it uses the current activeLeadId
     document.getElementById('confirm-delete-btn').onclick = () => { 
         deleteLead(activeLeadId); 
         closeDeleteModal(); 
@@ -303,10 +365,34 @@ function closeDeleteModal() {
     document.getElementById('delete-modal').style.display = 'none'; 
 }
 
-function deleteLead(id) {
-    leads = leads.filter(l => l.id !== id);
-    saveData();
-    renderLeads();
+async function deleteLead(id) {
+    try {
+        const user = firebase.auth().currentUser;
+        if (!user) {
+            showToast("You must be logged in to delete.");
+            return;
+        }
+
+        // 1. Delete from Firestore first using the string ID
+        await db.collection("leads").doc(String(id)).delete();
+
+        // 2. Update local state
+        leads = leads.filter(l => String(l.id) !== String(id));
+        
+        // 3. Update Local Storage
+        localStorage.setItem('myLeads', JSON.stringify(leads));
+        
+        // 4. Refresh UI
+        renderLeads();
+        if (typeof closeFullProfile === "function") closeFullProfile();
+        
+        showToast("Lead permanently deleted");
+        console.log("Firestore: Document deleted:", id);
+
+    } catch (error) {
+        console.error("Error deleting lead:", error);
+        showToast("Delete failed. Please check connection.");
+    }
 }
 
 // 6. MODAL UTILITIES
@@ -377,14 +463,23 @@ if(leadForm) {
     leadForm.addEventListener('submit', async function(e) {
         e.preventDefault();
         
-        // 1. Use the full reference for safety
+        // 1. Run Validation on Save
+        const isPhoneValid = validateField(document.getElementById('lead-phone'), 'phone');
+        const isEmailValid = validateField(document.getElementById('lead-email'), 'email');
+
+        // 2. Stop if invalid
+        if (!isPhoneValid || !isEmailValid) {
+            if (navigator.vibrate) navigator.vibrate(50); // Haptic feedback for error
+            return; 
+        }
+
+        // 3. Continue with Save logic if valid
         const user = firebase.auth().currentUser; 
         if(!user) {
             showToast("Please log in to add leads.");
             return;
         }
 
-        // 2. Use the full reference for the ID generator
         const newLeadRef = firebase.firestore().collection("leads").doc();
 
         const newLead = {
@@ -407,8 +502,10 @@ if(leadForm) {
         renderLeads();
         this.reset();
         closeModal();
+        showToast("Lead Saved Successfully!");
     });
 }
+
 function updateLeadContact() {
     const idx = leads.findIndex(l => l.id === activeLeadId);
     if (idx !== -1) {
@@ -469,9 +566,26 @@ function validatePhone(phone) {
     return clean.length >= 10; 
 }
 
-function validateLive(el, type) { 
-    const isValid = el.value === "" || (type === 'phone' ? validatePhone(el.value) : validateEmail(el.value));
-    el.classList.toggle('invalid-input', !isValid); 
+function validateLive(inputElement, type) {
+    // If the box is already red (invalid), check if the new typing has fixed it
+    if (inputElement.classList.contains('invalid-input')) {
+        const value = inputElement.value.trim();
+        let isValid = true;
+
+        if (type === 'email') {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            isValid = emailRegex.test(value);
+        } else if (type === 'phone') {
+    const phoneRegex = /^(\+44)?\d{11}$/;
+    isValid = phoneRegex.test(value.replace(/\s+/g, ''));
+}
+
+        if (isValid) {
+            inputElement.classList.remove('invalid-input');
+            const errorDisplay = document.getElementById(inputElement.id + '-error');
+            if (errorDisplay) errorDisplay.style.display = 'none';
+        }
+    }
 }
 
 function toggleSearch(show) {
@@ -497,8 +611,9 @@ function handleSearch(query) {
         (lead.company && lead.company.toLowerCase().includes(query.toLowerCase()))
     );
 
+    // FIX: Added quotes around lead.id
     resultsContainer.innerHTML = filtered.map(lead => `
-        <div class="search-result-item" onclick="goToLeadFromSearch(${lead.id})">
+        <div class="search-result-item" onclick="goToLeadFromSearch('${lead.id}')">
             <div style="font-weight:600; color:var(--text-dark);">${lead.name}</div>
             <div style="font-size:12px; color:#666;">${lead.company || 'No Company'} • ${lead.status}</div>
         </div>
@@ -559,12 +674,14 @@ window.showToast = function(message) {
 
 function toggleNotifications() {
     const modal = document.getElementById('notif-modal');
-    if(modal.style.display === 'none' || !modal.style.display) {
+    // Simple toggle logic
+    if (modal.style.display === 'none' || !modal.style.display) {
         modal.style.display = 'flex';
-        renderNotificationList();
         // Mark all as read when opening
         notifications.forEach(n => n.read = true);
         localStorage.setItem('notifications', JSON.stringify(notifications));
+        
+        renderNotificationList();
         updateNotifUI();
     } else {
         modal.style.display = 'none';
@@ -573,34 +690,41 @@ function toggleNotifications() {
 
 function renderNotificationList() {
     const container = document.getElementById('notif-list-container');
-    if(!container) return;
+    if (!container) return;
     
-    if(notifications.length === 0) {
-        container.innerHTML = '<p style="text-align:center; color:#888; padding:20px;">No notifications yet.</p>';
+    if (notifications.length === 0) {
+        container.innerHTML = `
+            <div style="text-align:center; color:#999; padding:40px 20px;">
+                <div style="font-size:30px; margin-bottom:10px;">🔔</div>
+                <p style="font-size:13px; margin:0;">No new notifications</p>
+            </div>`;
         return;
     }
 
     // Header with Clear All button
     let html = `
-        <div style="padding: 10px 12px; border-bottom: 2px solid #eee; display: flex; justify-content: space-between; align-items: center; background: #fafafa;">
-            <span style="font-size: 12px; font-weight: 700; color: #666;">NOTIFICATIONS</span>
-            <button onclick="clearAllNotifications()" style="background: none; border: none; color: var(--teal-primary); font-size: 11px; font-weight: 700; cursor: pointer; padding: 4px 8px;">Clear All</button>
+        <div style="padding: 12px; border-bottom: 2px solid #eee; display: flex; justify-content: space-between; align-items: center; background: #fafafa;">
+            <span style="font-size: 11px; font-weight: 800; color: #999; text-transform: uppercase; letter-spacing:0.5px;">Reminders</span>
+            <button onclick="clearAllNotifications()" style="background: none; border: none; color: #ff3b30; font-size: 11px; font-weight: 700; cursor: pointer;">Clear All</button>
         </div>
     `;
 
     // Map through notifications
+    // FIX: Added '${n.leadId}' quotes to handle alphanumeric strings
     html += notifications.map((n, index) => `
-        <div style="padding:12px; border-bottom:1px solid #eee; background:${n.read ? 'white' : '#f0f9f9'}; cursor:pointer; position: relative;"
-             class="notif-item"
-             onclick="goToLeadFromNotification(${n.leadId})">
-            <div style="display:flex; justify-content:space-between; padding-right: 20px;">
+        <div class="notif-item"
+             style="padding:15px 12px; border-bottom:1px solid #f5f5f5; background:white; cursor:pointer; position: relative;"
+             onclick="goToLeadFromNotification('${n.leadId}')">
+            <div style="display:flex; justify-content:space-between; margin-bottom:4px; padding-right:20px;">
                 <strong style="font-size:13px; color:var(--teal-primary);">${n.leadName}</strong>
                 <span style="font-size:10px; color:#999;">${n.time}</span>
             </div>
-            <div style="font-size:13px; color:#444; margin-top:4px; padding-right: 20px;">Reminder: ${n.taskDesc}</div>
+            <div style="font-size:13px; color:#333; line-height:1.4; padding-right:25px;">
+                ${n.taskDesc}
+            </div>
             
             <button onclick="event.stopPropagation(); deleteNotification(${index})" 
-                    style="position: absolute; top: 10px; right: 8px; background: none; border: none; color: #ccc; font-size: 16px; cursor: pointer; line-height: 1;">
+                    style="position: absolute; top: 12px; right: 10px; background: #f0f0f0; border: none; color: #999; width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size: 14px; cursor: pointer;">
                 &times;
             </button>
         </div>
@@ -610,39 +734,40 @@ function renderNotificationList() {
 }
 
 function goToLeadFromNotification(leadId) {
-    activeLeadId = leadId;
+    // FIX: Ensure activeLeadId is set as a string
+    activeLeadId = String(leadId);
     const modal = document.getElementById('notif-modal');
     if (modal) modal.style.display = 'none';
-    openFullProfile();
+    
+    // Standard profile opening logic
+    openFullProfile(); 
 }
 
 function updateNotifUI() {
     const badge = document.getElementById('notif-badge');
+    if (!badge) return;
+    
     const unreadCount = notifications.filter(n => !n.read).length;
     
-    if(unreadCount > 0) {
+    if (unreadCount > 0) {
         badge.innerText = unreadCount;
-        badge.style.display = 'block';
+        badge.style.display = 'flex'; // Usually flex works better for centered text
     } else {
         badge.style.display = 'none';
     }
 }
 
 function clearAllNotifications() {
-    if (confirm("Are you sure you want to clear all notifications?")) {
-        notifications = [];
-        localStorage.setItem('notifications', JSON.stringify(notifications));
-        renderNotificationList();
-        updateNotifUI();
-    }
+    // No need for a confirm if you want it fast, but good for safety
+    notifications = [];
+    localStorage.setItem('notifications', JSON.stringify(notifications));
+    renderNotificationList();
+    updateNotifUI();
 }
 
 function deleteNotification(index) {
-    // Remove the specific notification from the array
     notifications.splice(index, 1);
     localStorage.setItem('notifications', JSON.stringify(notifications));
-    
-    // Refresh the UI
     renderNotificationList();
     updateNotifUI();
 }
@@ -763,14 +888,14 @@ function handleDateClick(dateString) {
     dateHeader.innerText = `Tasks for ${new Date(dateString).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
     
     listContainer.innerHTML = tasksForDay.map(task => `
-        <div class="search-result-item" onclick="goToLeadFromCalendarPicker(${task.leadId})">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <span style="font-weight:700;">${task.description}</span>
-                <span style="font-size:11px; color:#ff9500;">${task.time}</span>
-            </div>
-            <div style="font-size:12px; color:#666;">Lead: ${task.leadName}</div>
+    <div class="search-result-item" onclick="goToLeadFromCalendarPicker('${task.leadId}')">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-weight:700;">${task.description}</span>
+            <span style="font-size:11px; color:#ff9500;">${task.time}</span>
         </div>
-    `).join('');
+        <div style="font-size:12px; color:#666;">Lead: ${task.leadName}</div>
+    </div>
+`).join('');
 
     modal.style.display = 'flex';
 }
@@ -798,23 +923,29 @@ function renderAllTasks() {
     leads.forEach(lead => {
         if (lead.activities) {
             lead.activities.forEach(act => {
-                if (act.type === 'Task') {
+                // Only show tasks that haven't been "cleared" from this view
+                if (act.type === 'Task' && !act.clearedFromGlobalList) {
                     allTasks.push({ ...act, belongsTo: lead.name, belongsToId: lead.id });
                 }
             });
         }
     });
 
-    allTasks.sort((a, b) => new Date(b.taskTimestamp) - new Date(a.taskTimestamp));
+    // Sort: Uncompleted tasks first, then by date
+    allTasks.sort((a, b) => {
+        if (a.completed !== b.completed) return a.completed - b.completed;
+        return new Date(a.taskTimestamp) - new Date(b.taskTimestamp);
+    });
 
     if (allTasks.length === 0) {
-        container.innerHTML = '<p style="color:#888; text-align:center; padding:40px;">No scheduled tasks found.</p>';
+        container.innerHTML = '<div style="text-align:center; padding:60px 20px; color:#888;">✅ All tasks cleared!</div>';
         return;
     }
 
     allTasks.forEach(task => {
         const card = document.createElement('div');
         card.className = 'lead-card'; 
+        const isComp = task.completed;
         
         card.style.cssText = `
             margin-bottom: 8px !important;
@@ -822,38 +953,41 @@ function renderAllTasks() {
             display: flex !important;
             align-items: center !important;
             justify-content: space-between !important;
-            border-left: 4px solid ${task.completed ? '#4caf50' : '#ff9500'} !important;
-            opacity: ${task.completed ? '0.7' : '1'};
-            min-height: auto !important;
+            border-left: 4px solid ${isComp ? '#4caf50' : '#ff9500'} !important;
+            opacity: ${isComp ? '0.7' : '1'};
             cursor: pointer;
         `;
 
-        // 1. MAIN CLICK: Open Profile
         card.onclick = () => {
             activeLeadId = task.belongsToId;
             openFullProfile();
         };
 
-        // 2. TICK CONTENT: We use an SVG that stays visible and acts as a button
-        const tickColor = task.completed ? '#4caf50' : '#ddd';
-        
         card.innerHTML = `
-            <div style="flex: 1;">
-                <div style="font-size: 10px; font-weight: 700; color: ${task.completed ? '#4caf50' : '#ff9500'}; text-transform: uppercase;">
-                    ${task.date} @ ${task.time}
+            <div style="flex: 1; ${isComp ? 'text-decoration: line-through;' : ''}">
+                <div style="font-size: 10px; font-weight: 700; color: ${isComp ? '#4caf50' : '#ff9500'}; text-transform: uppercase;">
+                    ${isComp ? 'Completed' : `${task.date} @ ${task.time}`}
                 </div>
                 <div style="font-weight: 700; font-size: 15px; color: #333; margin: 2px 0;">
                     ${task.description}
                 </div>
-                <div style="font-size: 12px; color: #666;">
-                    Lead: <span style="color: var(--teal-primary); font-weight: 600;">${task.belongsTo}</span>
-                </div>
+                <div style="font-size: 12px; color: #666;">Lead: ${task.belongsTo}</div>
             </div>
-            <div onclick="event.stopPropagation(); toggleTaskComplete(${task.belongsToId}, ${task.id})" 
-                 style="padding: 10px; margin-right: -10px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="${tickColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
+            
+            <div style="display: flex; align-items: center; gap: 5px;">
+                ${isComp ? `
+                    <button onclick="event.stopPropagation(); clearTaskFromList('${task.belongsToId}', '${task.id}')" 
+                            style="background:#f0f0f0; border:none; border-radius:6px; padding:6px 10px; font-size:11px; color:#666; cursor:pointer; font-weight:600;">
+                        CLEAR
+                    </button>
+                ` : ''}
+                
+                <div onclick="event.stopPropagation(); toggleTaskComplete('${task.belongsToId}', '${task.id}')" 
+                     style="padding: 10px; cursor: pointer; display: flex; align-items: center;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="${isComp ? '#4caf50' : '#ddd'}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                </div>
             </div>
         `;
         container.appendChild(card);
@@ -869,19 +1003,26 @@ setInterval(() => {
         if (!lead.activities) return;
         
         lead.activities.forEach(task => {
+            // Check if it's a task, has a reminder, hasn't notified yet, and isn't finished
             if (task.type === 'Task' && task.reminderOffset !== 'none' && !task.notified && !task.completed) {
+                
+                // Calculate when the reminder should trigger
                 const reminderTime = task.taskTimestamp - (parseInt(task.reminderOffset) * 60000);
                 
                 if (now >= reminderTime) {
                     const newNotif = {
-                        id: Date.now() + Math.random(),
+                        id: Date.now() + Math.random(), // Unique ID for the notification itself
                         taskDesc: task.description,
-                        leadId: lead.id,
+                        leadId: String(lead.id), // FIX: Ensure leadId is stored as a string
                         leadName: lead.name,
                         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                         read: false
                     };
+
+                    // Add to the start of the array so newest is on top
                     notifications.unshift(newNotif);
+                    
+                    // Mark task so we don't notify again
                     task.notified = true;
                     needsUpdate = true;
                 }
@@ -890,9 +1031,17 @@ setInterval(() => {
     });
 
     if (needsUpdate) {
-        saveData();
+        // Sync the 'notified' state change to Firestore/LocalLeads
+        saveData(); 
+        
+        // Sync the new notification to LocalStorage
         localStorage.setItem('notifications', JSON.stringify(notifications));
+        
+        // Refresh the Red Badge and the List if open
         updateNotifUI();
+        if (document.getElementById('notif-modal').style.display === 'flex') {
+            renderNotificationList();
+        }
     }
 }, 30000);
 
@@ -1123,7 +1272,7 @@ async function renderSettingsContent() {
                     Logout
                 </button>
             </div>
-            <p style="text-align: center; color: #ccc; font-size: 11px; margin-top: 30px;">CLOSED LOOP CRM v1.0.5</p>
+            <p style="text-align: center; color: #ccc; font-size: 11px; margin-top: 30px;">CLOSED LOOP CRM v1.0.6</p>
         </main>
     `;
 }
@@ -1250,3 +1399,54 @@ function renderROI() {
         sourceListEl.innerHTML = '<p style="color:#999; font-size:12px; text-align:center;">No "Won" leads to analyze yet.</p>';
     }
 }
+
+function validateField(inputElement, type) {
+    if (!inputElement) return true;
+
+    const value = inputElement.value.trim();
+    let isValid = true;
+    let message = "";
+
+    // 1. Logic check
+    if (value === "") {
+        isValid = true; // Allow empty if your form doesn't require these fields
+    } else if (type === 'email') {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        isValid = emailRegex.test(value);
+        message = "Please enter a valid email";
+    } else if (type === 'phone') {
+    // This regex checks for an optional +44 and exactly 11 digits
+    const phoneRegex = /^(\+44)?\d{11}$/;
+    isValid = phoneRegex.test(value.replace(/\s+/g, '')); // Removes spaces before checking
+    message = "Enter 11 digits including UK prefix";
+}
+
+    // 2. Visual updates
+    let errorId = inputElement.id + '-error';
+    let errorDisplay = document.getElementById(errorId);
+    
+    if (!errorDisplay) {
+        errorDisplay = document.createElement('div');
+        errorDisplay.id = errorId;
+        errorDisplay.className = 'error-message';
+        inputElement.parentNode.insertBefore(errorDisplay, inputElement.nextSibling);
+    }
+
+    if (!isValid) {
+        inputElement.classList.add('invalid-input');
+        errorDisplay.innerText = message;
+        errorDisplay.style.display = 'block';
+    } else {
+        inputElement.classList.remove('invalid-input');
+        errorDisplay.style.display = 'none';
+    }
+
+    return isValid;
+}
+
+// ACTIVATE VALIDATION
+document.addEventListener('DOMContentLoaded', () => {
+    // We no longer call applyValidation here because 
+    // validation now happens inside the 'submit' event of the lead form.
+    console.log("CRM Ready: Validation will trigger on Save.");
+});

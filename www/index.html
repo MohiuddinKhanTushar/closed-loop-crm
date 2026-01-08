@@ -121,11 +121,11 @@
                 </div>
                 <div class="detail-item">
                     <label>Phone</label>
-                    <input type="tel" id="profile-phone-input" class="profile-edit-input" oninput="validateLive(this, 'phone')" onchange="syncProfileToData()">
+                    <input type="tel" id="profile-phone-input" class="profile-edit-input" inputmode="tel" oninput="validateLive(this, 'phone')" onchange="syncProfileToData()">
                 </div>
                 <div class="detail-item">
                     <label>Email</label>
-                    <input type="email" id="profile-email-input" class="profile-edit-input" oninput="validateLive(this, 'email')" onchange="syncProfileToData()">
+                    <input type="email" id="profile-email-input" class="profile-edit-input" inputmode="email" oninput="validateLive(this, 'email')" onchange="syncProfileToData()">
                 </div>
                 <div class="detail-item">
                     <label>Address</label>
@@ -218,12 +218,12 @@
 
                 <div class="info-group">
                     <label>Phone Number</label>
-                    <input type="tel" id="detail-phone-input" placeholder="Add phone..." oninput="validateLive(this, 'phone')" onchange="updateLeadContact()">
+                    <input type="tel" id="detail-phone-input" placeholder="Add phone..." inputmode="tel" oninput="validateLive(this, 'phone')" onchange="updateLeadContact()">
                 </div>
 
                 <div class="info-group">
                     <label>Email Address</label>
-                    <input type="email" id="detail-email-input" placeholder="Add email..." oninput="validateLive(this, 'email')" onchange="updateLeadContact()">
+                    <input type="email" id="detail-email-input" placeholder="Add email..." inputmode="email" oninput="validateLive(this, 'email')" onchange="updateLeadContact()">
                 </div>
 
                 <div class="info-group">
@@ -286,20 +286,28 @@
     <section id="settings-screen" class="screen" style="display: none;">
     </section>
 
-    <div id="add-lead-modal" class="modal-overlay" style="display: none;">
-        <div class="modal-content">
-            <div class="modal-header"><h2>Add New Lead</h2><button onclick="closeModal()" class="close-btn">✕</button></div>
-            <form id="lead-form">
-                <input type="text" id="lead-name" placeholder="Lead Name" required>
-                <input type="text" id="lead-company" placeholder="Company Name">
-                <input type="text" id="lead-source" placeholder="Source" required>
-                <input type="number" id="lead-value" placeholder="Value (£)" required>
-                <input type="text" id="lead-phone" placeholder="Phone Number" required>
-                <input type="text" id="lead-email" placeholder="Email Address" required>
-                <button type="submit" class="save-btn">Save Lead</button>
-            </form>
+    <div id="add-lead-modal" class="modal-overlay" style="display: none;" onclick="if(event.target === this) closeModal()">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 style="margin: 0; width: 100%; text-align: center;">Add New Lead</h2>
         </div>
+        
+        <form id="lead-form">
+            <input type="text" id="lead-name" placeholder="Lead Name" required>
+            <input type="text" id="lead-company" placeholder="Company Name">
+            <input type="text" id="lead-source" placeholder="Source" required>
+            <input type="number" id="lead-value" placeholder="Value (£)" required>
+            
+            <input type="tel" id="lead-phone" placeholder="Phone Number" required 
+                   inputmode="tel" oninput="validateLive(this, 'phone')">
+            
+            <input type="email" id="lead-email" placeholder="Email Address" required 
+                   inputmode="email" oninput="validateLive(this, 'email')">
+            
+            <button type="submit" class="save-btn">Save Lead</button>
+        </form>
     </div>
+</div>
 
     <div id="delete-modal" class="modal-overlay" style="display: none; align-items: center; justify-content: center;">
         <div class="modal-content" style="width: 85%; border-radius: 20px; padding: 25px; text-align: center;">
