@@ -144,6 +144,27 @@ function showScreen(screenId) {
     }
 }
 
+async function clearTaskFromList(leadId, taskId) {
+    // 1. Find the lead
+    const leadIdx = leads.findIndex(l => String(l.id) === String(leadId));
+    if (leadIdx === -1) return;
+
+    // 2. Find the task within that lead's activities
+    const task = leads[leadIdx].activities.find(a => String(a.id) === String(taskId));
+    
+    if (task) {
+        // 3. Mark it as cleared so it disappears from the "All Tasks" view
+        task.clearedFromGlobalList = true;
+
+        // 4. Save the changes to Firebase/Local Storage
+        await saveData();
+
+        // 5. Refresh the Tasks UI
+        renderAllTasks();
+        showToast("Task cleared from list");
+    }
+}
+
 function openFullProfile() {
     const lead = leads.find(l => l.id === activeLeadId);
     if (!lead) return;
@@ -870,7 +891,8 @@ function handleDateClick(dateString) {
 
     // If only one task, go straight to lead
     if (tasksForDay.length === 1) {
-        activeLeadId = tasksForDay[0].toString(); // Ensure this is set!
+        // Change from tasksForDay[0].toString() to the specific leadId
+        activeLeadId = String(tasksForDay[0].leadId); 
         closeCalendar();
         openFullProfile();
         return;
@@ -1442,6 +1464,67 @@ function validateField(inputElement, type) {
     }
 
     return isValid;
+}
+
+// --- EDIT LEAD MODAL LOGIC ---
+
+function openEditLeadModal() {
+    // Find the lead in your existing 'leads' array using 'activeLeadId'
+    const lead = leads.find(l => l.id === activeLeadId);
+    
+    if (!lead) {
+        console.error("No lead data found for ID:", activeLeadId);
+        showToast("Error: Lead not found");
+        return;
+    }
+
+    // Populate the modal fields with current data
+    document.getElementById('edit-lead-name').value = lead.name || "";
+    document.getElementById('edit-lead-source').value = lead.source || "";
+    document.getElementById('edit-lead-value').value = lead.value || 0;
+    
+    // Show the modal
+    document.getElementById('edit-lead-modal').style.display = 'flex';
+}
+
+function closeEditModal() {
+    document.getElementById('edit-lead-modal').style.display = 'none';
+}
+
+async function saveLeadEdits() {
+    const newName = document.getElementById('edit-lead-name').value.trim();
+    const newSource = document.getElementById('edit-lead-source').value.trim();
+    const newValue = document.getElementById('edit-lead-value').value;
+
+    if (!newName) {
+        showToast("Lead name cannot be empty");
+        return;
+    }
+
+    // 1. Find the lead index in your global array
+    const idx = leads.findIndex(l => l.id === activeLeadId);
+    
+    if (idx !== -1) {
+        // 2. Update the local data object
+        leads[idx].name = newName;
+        leads[idx].source = newSource;
+        leads[idx].value = newValue;
+
+        // 3. Update the UI headings on the Profile Screen immediately
+        document.getElementById('profile-main-name').innerText = newName;
+        updateProfileSubInfo(leads[idx]);
+
+        // 4. Save to LocalStorage and Firebase using your existing sync function
+        await saveData();
+
+        // 5. Refresh the pipeline list in the background
+        renderLeads();
+
+        closeEditModal();
+        showToast("Lead updated");
+    } else {
+        showToast("Error updating lead");
+    }
 }
 
 // ACTIVATE VALIDATION

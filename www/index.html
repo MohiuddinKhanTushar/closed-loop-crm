@@ -104,15 +104,21 @@
         
         <main class="content">
             <div class="profile-card">
-                <h1 id="profile-main-name">Loading...</h1>
-                <p id="profile-sub-info" style="color: #666; margin-top: -10px;">Source • Value</p>
-                <div class="action-grid">
-                    <button class="action-btn" onclick="logActivity('Call')">Call</button>
-                    <button class="action-btn" onclick="logActivity('WhatsApp')">WhatsApp</button>
-                    <button class="action-btn" onclick="logActivity('Email')">Email</button>
-                    <button class="action-btn" onclick="logActivity('Text')">Text</button>
-                </div>
-            </div>
+    <h1 id="profile-main-name">Loading...</h1>
+    <p id="profile-sub-info" style="color: #666; margin-top: -10px;">Source • Value</p>
+    
+    <button onclick="openEditLeadModal()" style="background: none; border: none; color: var(--teal-primary); font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 5px; margin: 10px auto 0; cursor: pointer; padding: 5px 10px; border-radius: 20px; background: rgba(0, 128, 128, 0.05);">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+        Edit Lead Info
+    </button>
+
+    <div class="action-grid" style="margin-top: 20px;">
+        <button class="action-btn" onclick="logActivity('Call')">Call</button>
+        <button class="action-btn" onclick="logActivity('WhatsApp')">WhatsApp</button>
+        <button class="action-btn" onclick="logActivity('Email')">Email</button>
+        <button class="action-btn" onclick="logActivity('Text')">Text</button>
+    </div>
+</div>
 
             <div class="details-list">
                 <div class="detail-item">
@@ -456,6 +462,32 @@
     <script src="capacitor.js"></script>
 
     <script src="script.js"></script>
+
+<div id="edit-lead-modal" class="modal-overlay" style="display: none; align-items: center; justify-content: center; z-index: 7000;" onclick="if(event.target === this) closeEditModal()">
+    <div class="modal-content" style="width: 85%; border-radius: 20px; padding: 25px;">
+        <h3 style="margin-top: 0; color: var(--teal-primary); text-align: center;">Edit Lead Info</h3>
+        
+        <div class="info-group">
+            <label>Lead Name</label>
+            <input type="text" id="edit-lead-name" placeholder="Full Name">
+        </div>
+        
+        <div class="info-group">
+            <label>Source</label>
+            <input type="text" id="edit-lead-source" placeholder="e.g. Google, Referral">
+        </div>
+        
+        <div class="info-group">
+            <label>Value (£)</label>
+            <input type="number" id="edit-lead-value" placeholder="0">
+        </div>
+        
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button onclick="closeEditModal()" style="flex: 1; padding: 12px; border-radius: 10px; border: 1px solid #ddd; background: white;">Cancel</button>
+            <button onclick="saveLeadEdits()" style="flex: 1; padding: 12px; border-radius: 10px; border: none; background: var(--teal-primary); color: white; font-weight: 600;">Save Changes</button>
+        </div>
+    </div>
+</div>
 
 </body>
 </html>
