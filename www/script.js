@@ -38,7 +38,9 @@ let lastBackPress = 0;
 
 async function setupCapacitor() {
     const Plugins = window.Capacitor.Plugins;
-    const { StatusBar, App } = Plugins;
+    const { StatusBar, App, LocalNotifications } = Plugins;
+
+    if (LocalNotifications) await LocalNotifications.requestPermissions(); 
 
     // IMPORTANT: Clear any previous listeners to prevent double-firing
     if (App) {
@@ -98,7 +100,29 @@ async function setupCapacitor() {
     }
 }
 
+async function scheduleNativeNotification(task) {
+    const { LocalNotifications } = window.Capacitor.Plugins;
+    
+    // Calculate trigger time: task time minus offset minutes
+    const triggerMillis = task.taskTimestamp - (parseInt(task.reminderOffset) * 60000);
+    
+    // Don't schedule if the time has already passed
+    if (triggerMillis < Date.now()) return;
 
+    await LocalNotifications.schedule({
+        notifications: [
+            {
+                title: "Task Reminder",
+                body: `${task.leadName}: ${task.description}`,
+                id: Math.floor(task.id % 100000), // Ensure it's an integer
+                schedule: { at: new Date(triggerMillis) },
+                sound: 'default',
+                actionTypeId: "",
+                extra: task
+            }
+        ]
+    });
+}
 
 // 1. DATA SETUP & STATE
 let currentFilter = 'New';
@@ -582,6 +606,10 @@ function validateEmail(email) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); 
 }
 
+function getFormattedTime(date = new Date()) {
+    return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+}
+
 function validatePhone(phone) { 
     const clean = phone.replace(/[^0-9+]/g, '');
     return clean.length >= 10; 
@@ -794,7 +822,7 @@ function deleteNotification(index) {
 }
 
 // 9. REVISED SAVE TASK (With Reminder Support)
-function saveTask() {
+async function saveTask() {
     const descInput = document.getElementById('task-desc');
     const dateInput = document.getElementById('task-date');
     const timeInput = document.getElementById('task-time');
@@ -808,12 +836,11 @@ function saveTask() {
     const lead = leads.find(l => l.id === activeLeadId);
     if (!lead) return;
 
-    // Calculate actual task timestamp for the reminder logic
     const taskDateTime = new Date(`${dateInput.value}T${timeInput.value || '00:00'}`).getTime();
-
     const now = new Date();
+    // Unified timestamp for the activity log
     const timestampStr = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + 
-                         ', ' + now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+                         ', ' + getFormattedTime(now);
 
     const taskEntry = {
         id: Date.now(),
@@ -830,6 +857,16 @@ function saveTask() {
         notified: false
     };
 
+    if (reminderOffset !== 'none') {
+        try {
+            await scheduleNativeNotification(taskEntry);
+        } catch (err) {
+            console.error("Native notification failed:", err);
+        }
+        // REMOVED: notifications.unshift(newNotif) from here. 
+        // It will now only be added when the notification triggers or is clicked.
+    }
+
     if (!lead.activities) lead.activities = [];
     lead.activities.unshift(taskEntry);
 
@@ -841,7 +878,7 @@ function saveTask() {
     timeInput.value = '';
     document.getElementById('task-reminder-offset').value = 'none';
     
-    showToast("Task Scheduled!");
+    showToast("Task & Reminder Set!");
 }
 
 function renderCalendar() {
@@ -1023,28 +1060,24 @@ setInterval(() => {
 
     leads.forEach(lead => {
         if (!lead.activities) return;
-        
         lead.activities.forEach(task => {
-            // Check if it's a task, has a reminder, hasn't notified yet, and isn't finished
             if (task.type === 'Task' && task.reminderOffset !== 'none' && !task.notified && !task.completed) {
-                
-                // Calculate when the reminder should trigger
                 const reminderTime = task.taskTimestamp - (parseInt(task.reminderOffset) * 60000);
                 
                 if (now >= reminderTime) {
-                    const newNotif = {
-                        id: Date.now() + Math.random(), // Unique ID for the notification itself
-                        taskDesc: task.description,
-                        leadId: String(lead.id), // FIX: Ensure leadId is stored as a string
-                        leadName: lead.name,
-                        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                        read: false
-                    };
-
-                    // Add to the start of the array so newest is on top
-                    notifications.unshift(newNotif);
-                    
-                    // Mark task so we don't notify again
+                    // Check if already in bell list to prevent duplicates
+                    if (!notifications.some(n => n.taskId === task.id)) {
+                        const newNotif = {
+                            id: Date.now() + Math.random(),
+                            taskId: task.id,
+                            taskDesc: task.description,
+                            leadId: String(lead.id),
+                            leadName: lead.name,
+                            time: getFormattedTime(), // Using unified 24h helper
+                            read: false
+                        };
+                        notifications.unshift(newNotif);
+                    }
                     task.notified = true;
                     needsUpdate = true;
                 }
@@ -1053,13 +1086,8 @@ setInterval(() => {
     });
 
     if (needsUpdate) {
-        // Sync the 'notified' state change to Firestore/LocalLeads
         saveData(); 
-        
-        // Sync the new notification to LocalStorage
         localStorage.setItem('notifications', JSON.stringify(notifications));
-        
-        // Refresh the Red Badge and the List if open
         updateNotifUI();
         if (document.getElementById('notif-modal').style.display === 'flex') {
             renderNotificationList();
@@ -1533,3 +1561,38 @@ document.addEventListener('DOMContentLoaded', () => {
     // validation now happens inside the 'submit' event of the lead form.
     console.log("CRM Ready: Validation will trigger on Save.");
 });
+
+// --- SINGLE NOTIFICATION CLICK LISTENER ---
+if (window.Capacitor && window.Capacitor.Plugins.LocalNotifications) {
+    window.Capacitor.Plugins.LocalNotifications.addListener('localNotificationActionPerformed', (action) => {
+        const taskData = action.notification.extra;
+
+        if (taskData && taskData.leadId) {
+            const alreadyInList = notifications.some(n => n.taskId === taskData.id);
+
+            if (!alreadyInList) {
+                const newNotif = {
+                    id: Date.now(),
+                    taskId: taskData.id,
+                    taskDesc: taskData.description || "Task Reminder",
+                    leadId: String(taskData.leadId),
+                    leadName: taskData.leadName || "Lead",
+                    time: taskData.time || getFormattedTime(), // Use task time or current 24h time
+                    date: taskData.date || "",
+                    read: false
+                };
+
+                notifications.unshift(newNotif);
+                localStorage.setItem('notifications', JSON.stringify(notifications));
+                updateNotifUI();
+
+                if (document.getElementById('notif-modal')?.style.display === 'flex') {
+                    renderNotificationList();
+                }
+            }
+            
+            activeLeadId = String(taskData.leadId);
+            openFullProfile();
+        }
+    });
+}
