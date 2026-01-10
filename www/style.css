@@ -919,3 +919,39 @@ input, select, textarea {
     text-transform: uppercase;
 }
 
+/* The visual handle at the top of the drawer */
+.swipe-handle {
+    width: 40px;
+    height: 5px;
+    background: #ccc;
+    border-radius: 10px;
+    margin: 10px auto 5px;
+    cursor: grab;
+}
+
+/* Ensure the card has a smooth transition for the transform property */
+.slide-up-card {
+    transition: transform 0.3s ease-out;
+    touch-action: pan-y; /* Allows vertical scrolling/swiping */
+}
+
+/* Prevent the background from moving while swiping the modal */
+body.modal-open {
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+}
+
+/* Ensure the modal content is ready for movement */
+.modal-content, .lead-detail-card {
+    will-change: transform;
+    touch-action: pan-y; /* Critical for mobile recognition */
+}
+
+/* Your existing handle is already in the HTML, let's make it look nice */
+.lead-detail-card > div:first-child {
+    background: #d1d1d1 !important;
+    width: 50px !important;
+    height: 6px !important;
+    margin-bottom: 25px !important;
+}

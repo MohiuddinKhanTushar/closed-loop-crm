@@ -1,5 +1,10 @@
 {
-  "appId": "com.closedloop.crm",
+  "appId": "com.yourname.closedloop",
   "appName": "Closed Loop CRM",
-  "webDir": "www"
+  "webDir": "www",
+  "plugins": {
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_notification"
+    }
+  }
 }

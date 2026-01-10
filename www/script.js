@@ -1596,3 +1596,59 @@ if (window.Capacitor && window.Capacitor.Plugins.LocalNotifications) {
         }
     });
 }
+
+function makeSwipable(el, closeFunction) {
+    let startY = 0;
+    let currentY = 0;
+
+    el.addEventListener('touchstart', (e) => {
+        startY = e.touches[0].clientY;
+        el.style.transition = 'none'; 
+    }, { passive: true });
+
+    el.addEventListener('touchmove', (e) => {
+        // If the user is scrolling content inside the modal, don't swipe the whole modal
+        if (el.scrollTop > 0) return;
+
+        currentY = e.touches[0].clientY;
+        const deltaY = currentY - startY;
+
+        // Only allow dragging downwards
+        if (deltaY > 0) {
+            el.style.transform = `translateY(${deltaY}px)`;
+        }
+    }, { passive: true });
+
+    el.addEventListener('touchend', (e) => {
+        el.style.transition = 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+        const deltaY = currentY - startY;
+
+        if (deltaY > 120) {
+            // Success! Close the modal
+            closeFunction();
+            // Reset position after it finishes hiding
+            setTimeout(() => { el.style.transform = 'translateY(0)'; }, 300);
+        } else {
+            // Fail! Snap back to the top
+            el.style.transform = 'translateY(0)';
+        }
+        startY = 0;
+        currentY = 0;
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    // 1. For the Add New Lead Modal
+    const addLeadContent = document.querySelector('#add-lead-modal .modal-content');
+    if (addLeadContent) {
+        makeSwipable(addLeadContent, closeModal); 
+    }
+    
+    // 2. For the Lead Quick Detail Card (Summary)
+    const leadDetailCard = document.querySelector('#lead-detail-screen .lead-detail-card');
+    if (leadDetailCard) {
+        makeSwipable(leadDetailCard, () => {
+            document.getElementById('lead-detail-screen').style.display = 'none';
+        });
+    }
+});
