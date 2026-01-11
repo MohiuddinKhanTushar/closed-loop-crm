@@ -284,6 +284,8 @@ body:not(.app-ready) #auth-screen {
     padding: 0;
     box-sizing: border-box;
     overflow: hidden;
+    will-change: transform;
+    touch-action: pan-x;
 }
 
 .side-menu-brand {
@@ -944,8 +946,9 @@ body.modal-open {
 
 /* Ensure the modal content is ready for movement */
 .modal-content, .lead-detail-card {
-    will-change: transform;
-    touch-action: pan-y; /* Critical for mobile recognition */
+    will-change: transform; /* Prepares the phone's GPU */
+    backface-visibility: hidden; /* Prevents "flickering" on some Androids */
+    transition: transform 0.4s cubic-bezier(0.15, 1, 0.3, 1);
 }
 
 /* Your existing handle is already in the HTML, let's make it look nice */
@@ -955,3 +958,4 @@ body.modal-open {
     height: 6px !important;
     margin-bottom: 25px !important;
 }
+

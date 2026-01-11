@@ -1619,22 +1619,35 @@ function makeSwipable(el, closeFunction) {
         }
     }, { passive: true });
 
-    el.addEventListener('touchend', (e) => {
-        el.style.transition = 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
-        const deltaY = currentY - startY;
+   el.addEventListener('touchend', (e) => {
+    // Add the smooth transition back in
+    el.style.transition = 'transform 0.4s cubic-bezier(0.15, 1, 0.3, 1)';
+    
+    const deltaY = currentY - startY;
 
-        if (deltaY > 120) {
-            // Success! Close the modal
-            closeFunction();
-            // Reset position after it finishes hiding
-            setTimeout(() => { el.style.transform = 'translateY(0)'; }, 300);
-        } else {
-            // Fail! Snap back to the top
-            el.style.transform = 'translateY(0)';
-        }
-        startY = 0;
-        currentY = 0;
-    });
+    if (deltaY > 120) {
+        // 1. Slide it all the way off the bottom of the screen
+        el.style.transform = 'translateY(100%)';
+        
+        // 2. Wait for that animation to finish (400ms)
+        setTimeout(() => {
+            closeFunction(); // This actually closes the modal/screen
+            
+            // 3. Reset the position for the NEXT time it opens
+            setTimeout(() => {
+                el.style.transform = 'translateY(0)';
+            }, 50);
+        }, 400);
+        
+    } else {
+        // If they didn't swipe far enough, snap back to top
+        el.style.transform = 'translateY(0)';
+    }
+    
+    // Reset touch tracking
+    startY = 0;
+    currentY = 0;
+});
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -1651,4 +1664,62 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('lead-detail-screen').style.display = 'none';
         });
     }
+
+    makeSideMenuSwipable('side-menu', 'menu-overlay');
+
 });
+
+function makeSideMenuSwipable(menuId, overlayId) {
+    const menu = document.getElementById(menuId);
+    const overlay = document.getElementById(overlayId);
+    let startX = 0;
+    let currentX = 0;
+
+    menu.addEventListener('touchstart', (e) => {
+        startX = e.touches[0].clientX;
+        menu.style.transition = 'none'; // Disable animation during drag
+    }, { passive: true });
+
+    menu.addEventListener('touchmove', (e) => {
+        currentX = e.touches[0].clientX;
+        const deltaX = currentX - startX;
+
+        // Only allow dragging to the left (closing)
+        if (deltaX < 0) {
+            menu.style.transform = `translateX(${deltaX}px)`;
+            // Gradually fade the overlay as you swipe
+            const opacity = 1 + (deltaX / 300); 
+            overlay.style.opacity = Math.max(opacity, 0);
+        }
+    }, { passive: true });
+
+    menu.addEventListener('touchend', (e) => {
+    menu.style.transition = 'transform 0.3s ease-out';
+    const deltaX = currentX - startX;
+
+    // If swiped more than 70px to the left (closing)
+    if (deltaX < -70) {
+        // 1. Force the menu to slide completely out of view
+        menu.style.transform = 'translateX(-105%)';
+        overlay.style.opacity = '0';
+        
+        // 2. Wait for the animation, then cleanup the classes
+        setTimeout(() => {
+            // This calls your existing function that handles the 'display: none'
+            toggleMenu(); 
+            
+            // 3. Reset the manual transform so it opens normally next time
+            menu.style.transform = '';
+        }, 300);
+        
+    } else {
+        // If the swipe wasn't far enough, snap it back open
+        menu.style.transform = 'translateX(0)';
+        overlay.style.opacity = '1';
+    }
+    
+    // Reset tracking variables
+    startX = 0;
+    currentX = 0;
+});
+}
