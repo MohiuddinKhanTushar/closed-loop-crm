@@ -1723,3 +1723,14 @@ function makeSideMenuSwipable(menuId, overlayId) {
     currentX = 0;
 });
 }
+
+// Close side menu when a link is clicked
+document.querySelectorAll('.side-menu a').forEach(link => {
+    link.addEventListener('click', () => {
+        // We use your existing toggle function to ensure 
+        // the menu slides away and the overlay fades out.
+        if (typeof toggleMenu === "function") {
+            toggleMenu(); 
+        }
+    });
+});
