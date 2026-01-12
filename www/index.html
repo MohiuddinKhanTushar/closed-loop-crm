@@ -75,6 +75,7 @@
     <button class="tab active" onclick="filterLeads('New', this)">New</button>
     <button class="tab" onclick="filterLeads('In-Progress', this)">In-Progress</button>
     <button class="tab" onclick="filterLeads('Won', this)">Won</button>
+    <button class="tab" onclick="filterLeads('Lost', this)">Lost</button>
 </div>
 
 </header>
@@ -238,6 +239,7 @@
                         <option value="New">New</option>
                         <option value="In-Progress">In-Progress</option>
                         <option value="Won">Won</option>
+                        <option value="Lost">Lost</option>
                     </select>
                 </div>
                 
@@ -286,6 +288,12 @@
             <div id="roi-source-list">
                 </div>
         </div>
+
+        <div class="roi-chart-card">
+            <h3>Projected Revenue</h3>
+            <div id="roi-projected-revenue" class="stat-value">£0</div>
+        </div>
+
     </main>
 </div>
 

@@ -1391,13 +1391,15 @@ function renderROI() {
     const revenueEl = document.getElementById('roi-revenue-total');
     const winRateEl = document.getElementById('roi-win-rate');
     const sourceListEl = document.getElementById('roi-source-list');
+    const projectedEl = document.getElementById('roi-projected-revenue'); // New Element
 
     if (!pipelineEl) return;
 
     let totalPipelineValue = 0;
     let totalWonValue = 0;
+    let totalProjectedValue = 0; // Track weighted value
     let wonCount = 0;
-    let totalLeads = leads.length;
+    let lostCount = 0;
 
     // Track revenue by source
     const sourceData = {};
@@ -1405,26 +1407,38 @@ function renderROI() {
     leads.forEach(lead => {
         const val = parseFloat(lead.value) || 0;
         
-        // 1. Calculate Pipeline vs Won
         if (lead.status === 'Won') {
             totalWonValue += val;
             wonCount++;
-        } else if (lead.status !== 'Lost') {
+        } else if (lead.status === 'Lost') {
+            lostCount++; 
+        } else {
+            // Only active leads (New, In-Progress) count as Pipeline
             totalPipelineValue += val;
+
+            // --- Projected Revenue Logic ---
+            if (lead.status === 'New') {
+                totalProjectedValue += (val * 0.10); // 10% Probability
+            } else if (lead.status === 'In-Progress') {
+                totalProjectedValue += (val * 0.50); // 50% Probability
+            }
         }
 
-        // 2. Track Revenue by Source (only for Won leads)
+        // Track Revenue by Source (only for Won leads)
         if (lead.status === 'Won' && lead.source) {
             sourceData[lead.source] = (sourceData[lead.source] || 0) + val;
         }
     });
 
     // Update UI Labels
-    pipelineEl.innerText = `£${totalPipelineValue.toLocaleString()}`;
-    revenueEl.innerText = `£${totalWonValue.toLocaleString()}`;
+    if (pipelineEl) pipelineEl.innerText = `£${totalPipelineValue.toLocaleString()}`;
+    if (revenueEl) revenueEl.innerText = `£${totalWonValue.toLocaleString()}`;
+    if (projectedEl) projectedEl.innerText = `£${Math.round(totalProjectedValue).toLocaleString()}`;
     
-    const winRate = totalLeads > 0 ? Math.round((wonCount / totalLeads) * 100) : 0;
-    winRateEl.innerText = `${winRate}%`;
+    // Win Rate Calculation: Won / (Won + Lost)
+    const closedLeads = wonCount + lostCount;
+    const winRate = closedLeads > 0 ? Math.round((wonCount / closedLeads) * 100) : 0;
+    if (winRateEl) winRateEl.innerText = `${winRate}%`;
 
     // Render Source Breakdown
     sourceListEl.innerHTML = '';
@@ -1449,7 +1463,6 @@ function renderROI() {
         sourceListEl.innerHTML = '<p style="color:#999; font-size:12px; text-align:center;">No "Won" leads to analyze yet.</p>';
     }
 }
-
 function validateField(inputElement, type) {
     if (!inputElement) return true;
 
