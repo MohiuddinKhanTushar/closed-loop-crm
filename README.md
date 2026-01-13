@@ -53,7 +53,7 @@ Leveraging Firestore's NoSQL structure, I designed a hierarchical data model: `U
 
 This project requires **Node.js** and the **Firebase CLI**.
 
-1. Clone the repo: `git clone https://github.com/MohiuddinKhanTushar/closed-loop-crm.git`
+1. Clone the repo: `git clone [https://github.com/MohiuddinKhanTushar/closed-loop-crm.git]`
 2. Install Firebase Tools: `npm install -g firebase-tools`
 3. Initialize Firebase: `firebase init`
 4. Serve locally: `firebase serve` (powered by Node.js local server)
@@ -62,7 +62,7 @@ This project requires **Node.js** and the **Firebase CLI**.
 
 ## 📖 Deep Dive
 For a full narrative on my thinking process, market gap analysis, and sales-to-dev transition:
-👉 **[Read the Full Case Study on Notion](YOUR_NOTION_LINK_HERE)**
+👉 **[Read the Full Case Study on Notion](https://quick-colby-d9d.notion.site/CASE-STUDY-Closed-Loop-CRM-2e7b34c9840080a1b51ae610c463b8d1?source=copy_link)**
 
 ---
 *Developed as part of my journey toward Meta Front-End and IBM Full Stack Certification.*
