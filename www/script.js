@@ -101,6 +101,13 @@ async function setupCapacitor() {
 }
 
 async function scheduleNativeNotification(task) {
+    // Add a guard clause to prevent errors when running in a web browser
+    // where Capacitor is not defined.
+    if (!window.Capacitor || !window.Capacitor.Plugins || !window.Capacitor.Plugins.LocalNotifications) {
+        console.log("Native environment not detected. Skipping native notification.");
+        return; // Exit gracefully if not on a native device
+    }
+
     const { LocalNotifications } = window.Capacitor.Plugins;
     
     // Calculate trigger time: task time minus offset minutes
@@ -127,7 +134,7 @@ async function scheduleNativeNotification(task) {
 // 1. DATA SETUP & STATE
 let currentFilter = 'New';
 let activeLeadId = null;
-let notifications = JSON.parse(localStorage.getItem('notifications')) || [];
+let notifications = []; // Initialize as empty. Will be loaded per-user.
 
 let rawData = localStorage.getItem('myLeads');
 let leads = rawData ? JSON.parse(rawData) : [
@@ -721,6 +728,14 @@ window.showToast = function(message) {
 
 // --- NOTIFICATIONS & REMINDERS ---
 
+// Helper function to save notifications to localStorage, keyed by user ID
+function saveNotificationsForCurrentUser() {
+    const user = firebase.auth().currentUser;
+    if (user) {
+        localStorage.setItem(user.uid + '_notifications', JSON.stringify(notifications));
+    }
+}
+
 function toggleNotifications() {
     const modal = document.getElementById('notif-modal');
     // Simple toggle logic
@@ -728,7 +743,7 @@ function toggleNotifications() {
         modal.style.display = 'flex';
         // Mark all as read when opening
         notifications.forEach(n => n.read = true);
-        localStorage.setItem('notifications', JSON.stringify(notifications));
+        saveNotificationsForCurrentUser();
         
         renderNotificationList();
         updateNotifUI();
@@ -809,14 +824,14 @@ function updateNotifUI() {
 function clearAllNotifications() {
     // No need for a confirm if you want it fast, but good for safety
     notifications = [];
-    localStorage.setItem('notifications', JSON.stringify(notifications));
+    saveNotificationsForCurrentUser();
     renderNotificationList();
     updateNotifUI();
 }
 
 function deleteNotification(index) {
     notifications.splice(index, 1);
-    localStorage.setItem('notifications', JSON.stringify(notifications));
+    saveNotificationsForCurrentUser();
     renderNotificationList();
     updateNotifUI();
 }
@@ -1087,7 +1102,7 @@ setInterval(() => {
 
     if (needsUpdate) {
         saveData(); 
-        localStorage.setItem('notifications', JSON.stringify(notifications));
+        saveNotificationsForCurrentUser();
         updateNotifUI();
         if (document.getElementById('notif-modal').style.display === 'flex') {
             renderNotificationList();
@@ -1111,6 +1126,16 @@ firebase.auth().onAuthStateChanged((user) => {
     if (user) {
         // User is Logged In
         if (authScreen) authScreen.style.setProperty('display', 'none', 'important');
+
+        // Load notifications specific to the logged-in user
+        // FIX: Clear leads array before loading new data
+        leads = [];
+        renderLeads();
+
+        // Load notifications specific to the logged-in user
+        const userNotifications = localStorage.getItem(user.uid + '_notifications');
+        notifications = userNotifications ? JSON.parse(userNotifications) : [];
+        updateNotifUI();
         
         if (typeof syncLeadsFromServer === "function") {
             syncLeadsFromServer();
@@ -1122,6 +1147,11 @@ firebase.auth().onAuthStateChanged((user) => {
         if (authScreen) {
             authScreen.style.setProperty('display', 'flex', 'important');
             setAuthMode('login');
+
+            // Clear notifications when logged out
+            leads = [];
+            notifications = [];
+            updateNotifUI();
         }
     }
 
@@ -1226,7 +1256,18 @@ async function handleAuthAction() {
             showToast("Welcome back!");
         }
     } catch (error) {
-        triggerError(error.message);
+        // For login failures, provide a user-friendly, generic error message.
+        // This prevents revealing whether the username or password was the incorrect part.
+        if (!isSignUpMode && (
+            error.code === 'auth/invalid-credential' ||
+            error.code === 'auth/user-not-found' ||
+            error.code === 'auth/wrong-password' ||
+            error.code === 'auth/invalid-email')) {
+            triggerError("Incorrect username or password.");
+        } else {
+            // For sign-up errors (like 'email-already-in-use') or others, the default message is more descriptive.
+            triggerError(error.message);
+        }
     }
 }
 
@@ -1596,7 +1637,7 @@ if (window.Capacitor && window.Capacitor.Plugins.LocalNotifications) {
                 };
 
                 notifications.unshift(newNotif);
-                localStorage.setItem('notifications', JSON.stringify(notifications));
+                saveNotificationsForCurrentUser();
                 updateNotifUI();
 
                 if (document.getElementById('notif-modal')?.style.display === 'flex') {
