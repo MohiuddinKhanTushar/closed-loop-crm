@@ -1852,8 +1852,7 @@ window.executeAccountDeletion = async function(event) {
         // 3. Delete the Auth account (The most important step)
         await user.delete();
 
-        alert("Account and data deleted successfully.");
-        window.location.reload();
+        window.location.href = window.location.pathname + "?deleted=true";
 
     } catch (error) {
         console.error("Deletion Error:", error);
@@ -1869,4 +1868,19 @@ window.executeAccountDeletion = async function(event) {
             btn.disabled = false;
         }
     }
+};
+
+// Check for deletion flag on page load
+window.addEventListener('load', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('deleted') === 'true') {
+        const successModal = document.getElementById('delete-success-modal');
+        if (successModal) successModal.style.display = 'flex';
+    }
+});
+
+// Function for the OK button
+window.closeSuccessAndGoToLogin = function() {
+    // Remove the flag from the URL and clean the view
+    window.location.href = window.location.pathname;
 };
