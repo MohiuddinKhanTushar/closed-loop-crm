@@ -1355,7 +1355,7 @@ async function renderSettingsContent() {
 
                 <h3 style="font-size: 11px; color: #999; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">Support & Legal</h3>
                 
-                <button onclick="window.open('https://gist.github.com/MohiuddinKhanTushar/a9dfa87a7e1dee5071e230a08d538c2f', '_blank')" 
+                <button onclick="window.open('https://mohiuddinkhantushar.github.io/privacy/', '_blank')" 
                         style="width: 100%; padding: 14px; background: #fafafa; border: 1px solid #eee; border-radius: 12px; text-align: left; margin-bottom: 10px; font-size: 14px; display: flex; justify-content: space-between; align-items: center;">
                     <span>Privacy Policy</span>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
