@@ -1371,6 +1371,14 @@ async function renderSettingsContent() {
                     Logout
                 </button>
             </div>
+
+            <div style="margin-top: 40px; border-top: 1px solid #eee; padding-top: 20px;">
+    <p style="font-size: 11px; color: #999; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">Danger Zone</p>
+    <button onclick="window.confirmDeleteAccount()" style="width: 100%; padding: 12px; background: #fff5f5; color: #ff3b30; border: 1px solid #ffebeb; border-radius: 12px; font-size: 13px; font-weight: 600; cursor: pointer;">
+        Delete Account & All Data
+    </button>
+</div>
+
             <p style="text-align: center; color: #ccc; font-size: 11px; margin-top: 30px;">CLOSED LOOP CRM v1.0.6</p>
         </main>
     `;
@@ -1796,3 +1804,69 @@ document.querySelectorAll('.side-menu a').forEach(link => {
         }
     });
 });
+
+// --- GLOBAL ACCOUNT DELETION LOGIC ---
+
+window.confirmDeleteAccount = function() {
+    const modal = document.getElementById('account-delete-modal');
+    if (modal) modal.style.display = 'flex';
+};
+
+window.closeAccountDeleteModal = function() {
+    const modal = document.getElementById('account-delete-modal');
+    if (modal) modal.style.display = 'none';
+};
+
+window.executeAccountDeletion = async function(event) {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const btn = event.target;
+    btn.innerText = "Processing...";
+    btn.disabled = true;
+
+    try {
+        const uid = user.uid;
+
+        // Function to safely delete a collection without crashing the whole script
+        async function safeDelete(collectionName) {
+            try {
+                const snapshot = await db.collection(collectionName).where('userId', '==', uid).get();
+                if (snapshot.empty) return;
+                const batch = db.batch();
+                snapshot.forEach(doc => batch.delete(doc.ref));
+                await batch.commit();
+            } catch (e) {
+                console.warn(`Could not clear ${collectionName}:`, e);
+            }
+        }
+
+        // Run deletions
+        await safeDelete('leads');
+        await safeDelete('tasks');
+        await safeDelete('notifications');
+
+        // 2. Delete the User Document
+        await db.collection('users').doc(uid).delete();
+
+        // 3. Delete the Auth account (The most important step)
+        await user.delete();
+
+        alert("Account and data deleted successfully.");
+        window.location.reload();
+
+    } catch (error) {
+        console.error("Deletion Error:", error);
+        
+        if (error.code === 'auth/requires-recent-login') {
+            alert("Security: Please log out and back in, then try deleting again.");
+            window.closeAccountDeleteModal();
+            if (typeof logout === 'function') logout();
+        } else {
+            alert("Critical Error: " + error.message);
+            // Reset button so user can try again
+            btn.innerText = "Delete Everything";
+            btn.disabled = false;
+        }
+    }
+};
