@@ -1180,6 +1180,12 @@ function setAuthMode(mode) {
     const nameFields = document.getElementById('auth-name-fields');
     const forgotArea = document.getElementById('forgot-password-area');
 
+    const errorEl = document.getElementById('auth-error');
+    if (errorEl) {
+        errorEl.style.display = 'none';
+        errorEl.innerText = '';
+    }
+
     if (isSignUpMode) {
         title.innerText = "Create Account";
         subtitle.innerText = "Set up your secure CRM access";
@@ -1264,6 +1270,8 @@ async function handleAuthAction() {
             error.code === 'auth/wrong-password' ||
             error.code === 'auth/invalid-email')) {
             triggerError("Incorrect username or password.");
+        } else if (error.code === 'auth/weak-password') {
+            triggerError("Password must be at least 6 characters.");
         } else {
             // For sign-up errors (like 'email-already-in-use') or others, the default message is more descriptive.
             triggerError(error.message);
