@@ -1379,7 +1379,7 @@ async function renderSettingsContent() {
     </button>
 </div>
 
-            <p style="text-align: center; color: #ccc; font-size: 11px; margin-top: 30px;">CLOSED LOOP CRM v1.0.6</p>
+            <p style="text-align: center; color: #ccc; font-size: 11px; margin-top: 30px;">CLOSED LOOP CRM v1.0.1</p>
         </main>
     `;
 }
